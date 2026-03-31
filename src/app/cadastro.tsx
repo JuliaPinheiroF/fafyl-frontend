@@ -7,7 +7,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,8 +23,10 @@ export default function App() {
         </View>
 
         {/* Formulário Branco */}
-        <View style={styles.formContainer}>
-          <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent} 
+            showsVerticalScrollIndicator={false} >
             <Text style={styles.title}>Cadastro</Text>
 
             <View style={styles.inputGroup}>
@@ -78,13 +79,18 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#FFD700', // Cor do FAFYL
   },
-  formContainer: {
+  content: {
     flex: 1,
     backgroundColor: '#F5F5F5', // Fundo quase branco/cinza claro
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     paddingHorizontal: 30,
     paddingTop: 20,
+  },
+  scrollContent: {
+    flexGrow: 1,           
+    justifyContent: 'center', 
+    paddingVertical: 30, 
   },
   title: {
     fontSize: 22,
