@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React from 'react';
 import {
   KeyboardAvoidingView,
@@ -7,6 +8,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -49,9 +51,14 @@ export default function App() {
               <TextInput style={styles.input} keyboardType="numeric" />
             </View>
 
-            <TouchableOpacity style={styles.loginLink}>
-              <Text style={styles.loginLinkText}>Já possui uma conta?</Text>
-              <Text style={[styles.loginLinkText, { fontWeight: 'bold' }]}>Fazer login</Text>
+            {/* BOTÃO DE LOGIN CORRIGIDO */}
+            <TouchableOpacity 
+              style={styles.navlogin} 
+              onPress={() => router.push('/login' as any)} // O 'as any' ignora o erro de tipo temporariamente
+            >
+              <Text style={styles.loginText}>
+                Já possui uma conta? {"  "} <Text style={{ fontWeight: 'bold' }}>Fazer login</Text>
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.button}>
@@ -112,11 +119,11 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 20,
   },
-  loginLink: {
+  navlogin: {
     alignItems: 'center',
     marginVertical: 20,
   },
-  loginLinkText: {
+  loginText: {
     color: '#666',
     fontSize: 16,
   },
