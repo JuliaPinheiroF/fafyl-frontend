@@ -1,88 +1,65 @@
+import Background from '@/components/layout/background';
 import { router } from 'expo-router';
 import React from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+    <Background title="FAFYL">
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        {/* Cabeçalho Azul */}
-        <View style={styles.header}>
-          <Text style={styles.logoText}>FAFYL</Text>
-        </View>
+        style={{ flex: 1 }}>
 
         {/* Formulário Branco */}
         <View style={styles.content}>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
             <Text style={styles.title}>Login</Text>
 
-            {/* Campo E-mail */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>E-mail:</Text>
-              <TextInput 
-                style={styles.input} 
+              <TextInput
+                style={styles.input}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
             </View>
 
-            {/* Campo Senha */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Senha:</Text>
-              <TextInput 
-                style={styles.input} 
-                secureTextEntry={true} 
-              />
+              <TextInput style={styles.input} secureTextEntry />
             </View>
 
-            <TouchableOpacity 
-              style={styles.linkButton} 
-              onPress={() => router.replace('/cadastro')}
-            >
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={() => router.replace('/cadastro')}>
               <Text style={styles.linkText}>
                 Não tem uma conta? <Text style={styles.linkBold}>Cadastre-se</Text>
               </Text>
             </TouchableOpacity>
 
-            {/* Botão Entrar */}
             <TouchableOpacity style={styles.button}>
               <Text style={styles.buttonText}>Entrar</Text>
             </TouchableOpacity>
+
           </ScrollView>
         </View>
+
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Background>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#00008B',
-  },
-  header: {
-    height: 150,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 40,
-    fontWeight: '900',
-    color: '#FFD700',
-  },
   content: {
     flex: 1,
     backgroundColor: '#F5F5F5',

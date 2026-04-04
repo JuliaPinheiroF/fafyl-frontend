@@ -1,3 +1,4 @@
+import Background from '@/components/layout/background';
 import { router } from 'expo-router';
 import React from 'react';
 import {
@@ -10,25 +11,20 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function App() {
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+    <Background title="FAFYL">
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}>
-          
-        {/* Cabeçalho Azul */}
-        <View style={styles.header}>
-          <Text style={styles.logoText}>FAFYL</Text>
-        </View>
 
         {/* Formulário Branco */}
         <View style={styles.content}>
-          <ScrollView 
-            contentContainerStyle={styles.scrollContent} 
-            showsVerticalScrollIndicator={false} >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}>
+
             <Text style={styles.title}>Cadastro</Text>
 
             <View style={styles.inputGroup}>
@@ -43,7 +39,7 @@ export default function App() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Senha:</Text>
-              <TextInput style={styles.input} secureTextEntry={true} />
+              <TextInput style={styles.input} secureTextEntry />
             </View>
 
             <View style={styles.inputGroup}>
@@ -51,53 +47,40 @@ export default function App() {
               <TextInput style={styles.input} keyboardType="numeric" />
             </View>
 
-            {/* BOTÃO DE LOGIN CORRIGIDO */}
-            <TouchableOpacity 
-              style={styles.navlogin} 
-              onPress={() => router.push('/login' as any)} // O 'as any' ignora o erro de tipo temporariamente
-            >
+            <TouchableOpacity
+              style={styles.navlogin}
+              onPress={() => router.push('/login' as any)}>
               <Text style={styles.loginText}>
-                Já possui uma conta? {"  "} <Text style={{ fontWeight: 'bold' }}>Fazer login</Text>
+                Já possui uma conta?{'  '}
+                <Text style={{ fontWeight: 'bold' }}>Fazer login</Text>
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.button}>
               <Text style={styles.buttonText}>Cadastrar</Text>
             </TouchableOpacity>
+
           </ScrollView>
         </View>
+
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Background>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#00008B', // Azul do fundo
-  },
-  header: {
-    height: 150,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 40,
-    fontWeight: '900',
-    color: '#FFD700', // Cor do FAFYL
-  },
   content: {
     flex: 1,
-    backgroundColor: '#F5F5F5', // Fundo quase branco/cinza claro
+    backgroundColor: '#F5F5F5',
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     paddingHorizontal: 30,
     paddingTop: 20,
   },
   scrollContent: {
-    flexGrow: 1,           
-    justifyContent: 'center', 
-    paddingVertical: 30, 
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 30,
   },
   title: {
     fontSize: 22,
@@ -114,7 +97,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   input: {
-    backgroundColor: '#DDD', // Cinza dos campos
+    backgroundColor: '#DDD',
     height: 45,
     borderRadius: 25,
     paddingHorizontal: 20,
@@ -128,7 +111,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#FFD700', // Amarelo do botão
+    backgroundColor: '#FFD700',
     height: 60,
     borderRadius: 30,
     justifyContent: 'center',
