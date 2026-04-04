@@ -41,7 +41,7 @@ export default function LoginScreen() {
 
             <TouchableOpacity
               style={styles.linkButton}
-              onPress={() => router.replace('/cadastro')}>
+              onPress={() => router.replace('/home' as any)}>
               <Text style={styles.linkText}>
                 Não tem uma conta? <Text style={styles.linkBold}>Cadastre-se</Text>
               </Text>
