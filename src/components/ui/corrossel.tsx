@@ -32,9 +32,6 @@ function useScreenDimensions() {
   return dimensions;
 }
 
-// =========================
-// Dados
-// =========================
 interface College {
   id: string;
   name: string;
@@ -51,9 +48,6 @@ const MOCK_COLLEGES: College[] = [
   { id: '5', name: 'Smart College', description: 'Inteligência Artificial', color: '#6633ff', image: 'https://images.unsplash.com/photo-1519452635265-7b1fbfd1e4e0?w=400&q=80' },
 ];
 
-// =========================
-// Loop infinito
-// =========================
 const REPEAT_COUNT = 10;
 const DATA = Array(REPEAT_COUNT).fill(MOCK_COLLEGES).flat();
 
@@ -124,7 +118,7 @@ export default function Corrossel() {
 
   useDerivedValue(() => {
     if (!isUserInteracting.value) {
-      autoScroll.value += 0.6;
+      autoScroll.value += 0.2 * (screenWidth / 390);
 
       scrollTo(flatListRef, autoScroll.value, 0, false);
 
