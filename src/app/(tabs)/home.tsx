@@ -1,4 +1,5 @@
 import Background from '@/components/layout/background';
+import Corrossel from '@/components/ui/corrossel';
 import React from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -14,9 +15,7 @@ export default function Home() {
         >
           <Text style={styles.sectionTitle}>Universidades em destaque:</Text>
           
-          <View style={styles.highlightCard}>
-            <Text style={styles.cardText}>Faculdades em destaque</Text>
-          </View>
+          <Corrossel />
 
           <View style={styles.quizSection}>
             <Text style={styles.sectionTitle}>Faça nosso Quiz Indicador:</Text>
