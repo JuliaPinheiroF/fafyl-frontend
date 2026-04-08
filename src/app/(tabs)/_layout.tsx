@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Tabs, Stack } from 'expo-router';
 import { Platform } from 'react-native';
 
-export default function TabLayout() {
+export default function BuscaTabsLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -18,10 +18,8 @@ export default function TabLayout() {
           borderTopWidth: 0,
           position: 'absolute',
           elevation: 0,
-
-          paddingTop: 15,            
-          paddingBottom: Platform.OS === 'ios' ? 30 : 15, 
-
+          paddingTop: 15,
+          paddingBottom: Platform.OS === 'ios' ? 30 : 15,
         },
       }}
     >
