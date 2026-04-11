@@ -1,4 +1,5 @@
 import Background from '@/components/layout/background';
+import { router } from 'expo-router';
 import React from 'react';
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
 
@@ -6,7 +7,8 @@ const { width } = Dimensions.get('window');
 
 export default function TabPage() {
   return (
-    <Background title="FAFYL" showUserIcon={true}>
+    <Background title="FAFYL" showUserIcon={true}
+    onUserIconPress={() => router.push('/profile' as any)}>
       <View style={styles.whiteCard}>
         <View style={styles.container}>
           <Text style={styles.text}>Tela em Construção</Text>

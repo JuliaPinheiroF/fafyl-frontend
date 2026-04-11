@@ -8,7 +8,8 @@ const { width } = Dimensions.get('window');
 
 export default function BuscaScreen() {
   return (
-    <Background title="FAFYL" showUserIcon={true}>
+    <Background title="FAFYL" showUserIcon={true}
+    onUserIconPress={() => router.push('/profile' as any)}>
       <View style={styles.container}>
         <Text style={styles.subtitle}>O que você procura?</Text>
 
