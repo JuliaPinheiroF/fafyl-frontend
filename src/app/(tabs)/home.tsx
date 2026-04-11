@@ -1,5 +1,6 @@
 import Background from '@/components/layout/background';
 import Corrossel from '@/components/ui/corrossel';
+import { router } from 'expo-router';
 import React from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -7,7 +8,8 @@ const { width } = Dimensions.get('window');
 
 export default function Home() {
   return (
-    <Background title="FAFYL" showUserIcon={true}>
+    <Background title="FAFYL" showUserIcon={true}
+      onUserIconPress={() => router.push('/profile' as any)}>
       <View style={styles.whiteContainer}>
         <ScrollView 
           showsVerticalScrollIndicator={false} 

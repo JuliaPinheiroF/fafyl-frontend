@@ -1,6 +1,8 @@
 import Background from '@/components/layout/background';
+import { getAllColleges, getCollegeCourses } from '@/services/collegeService';
+import { College, CourseImp } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,8 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { College, CourseImp } from '@/types';
-import { getAllColleges, getCollegeCourses } from '@/services/collegeService';
 
 const { width } = Dimensions.get('window');
 
