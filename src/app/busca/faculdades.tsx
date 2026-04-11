@@ -66,7 +66,7 @@ export default function FaculdadesScreen() {
   );
 
   return (
-    <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
+    <Background title="FAFYL" showBackButton onBackPress={() => router.push('/busca')}>
       <View style={styles.container}>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={20} color="#666" />
