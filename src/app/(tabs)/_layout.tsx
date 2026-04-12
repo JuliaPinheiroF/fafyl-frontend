@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs, Stack } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 
-export default function BuscaTabsLayout() {
+export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -28,24 +28,60 @@ export default function BuscaTabsLayout() {
         options={{
           tabBarIcon: ({ color }) => <Ionicons name="home" size={30} color={color} />,
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'home' }],
+            });
+          },
+        })}
       />
       <Tabs.Screen
         name="quiz"
         options={{
           tabBarIcon: ({ color }) => <Ionicons name="bulb-outline" size={30} color={color} />,
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'quiz' }],
+            });
+          },
+        })}
       />
       <Tabs.Screen
         name="busca"
         options={{
           tabBarIcon: ({ color }) => <Ionicons name="search" size={30} color={color} />,
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'busca' }],
+            });
+          },
+        })}
       />
       <Tabs.Screen
         name="sobre"
         options={{
           tabBarIcon: ({ color }) => <Ionicons name="people" size={30} color={color} />,
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'sobre' }],
+            });
+          },
+        })}
       />
     </Tabs>
   );
