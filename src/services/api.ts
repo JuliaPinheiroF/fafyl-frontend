@@ -1,4 +1,4 @@
-const API_BASE = 'https://recommend-1-0.onrender.com';
+import { API_BASE } from '@/config/env';
 
 async function request<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {

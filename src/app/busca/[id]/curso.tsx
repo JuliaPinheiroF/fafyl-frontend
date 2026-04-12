@@ -69,7 +69,7 @@ export default function CursoDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Habilidades</Text>
           <View style={styles.tagsRow}>
-            {course.abilities.map((ability) => (
+            {(course.abilities || []).map((ability) => (
               <View key={ability} style={styles.tag}>
                 <Text style={styles.tagText}>{ability}</Text>
               </View>
@@ -80,7 +80,7 @@ export default function CursoDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Não pode ser</Text>
           <View style={styles.tagsRow}>
-            {course.cantBe.map((item) => (
+            {(course.cantBe || []).map((item) => (
               <View key={item} style={styles.tagRed}>
                 <Text style={styles.tagTextRed}>{item}</Text>
               </View>
@@ -113,9 +113,9 @@ function CourseImpCard({ imp }: { imp: CourseImp }) {
     >
       <View style={styles.impHeader}>
         <View style={styles.impInfo}>
-          <Text style={styles.impCollege}>{imp.college.name}</Text>
+          <Text style={styles.impCollege}>{imp.college?.name || imp.course?.name || 'Faculdade'}</Text>
           <Text style={styles.impFees}>
-            R$ {imp.fees.toFixed(2).replace('.', ',')}
+            {imp.fees ? `R$ ${imp.fees.toFixed(2).replace('.', ',')}` : 'Preço não disponível'}
           </Text>
         </View>
         <Ionicons
@@ -127,16 +127,18 @@ function CourseImpCard({ imp }: { imp: CourseImp }) {
 
       {expanded && (
         <View style={styles.impDetails}>
-          <Text style={styles.impDetailsText}>{imp.details}</Text>
+          <Text style={styles.impDetailsText}>{imp.details || ''}</Text>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Localização:</Text>
-            <Text style={styles.detailValue}>
-              Lat {imp.locale.lat.toFixed(4)} | Lon {imp.locale.lon.toFixed(4)}
-            </Text>
-          </View>
+          {imp.locale && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Localização:</Text>
+              <Text style={styles.detailValue}>
+                Lat {imp.locale.lat?.toFixed(4) || '0'} | Lon {imp.locale.lon?.toFixed(4) || '0'}
+              </Text>
+            </View>
+          )}
 
-          {Object.entries(imp.note).map(([key, value]) => (
+          {imp.note && Object.entries(imp.note).map(([key, value]) => (
             <View key={key} style={styles.detailRow}>
               <Text style={styles.detailLabel}>{key}:</Text>
               <Text style={styles.detailValue}>{String(value)}</Text>

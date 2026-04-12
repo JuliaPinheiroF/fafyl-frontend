@@ -92,12 +92,12 @@ export default function FaculdadeDetailScreen() {
             <TouchableOpacity
               key={course.id}
               style={styles.courseCard}
-              onPress={() => router.push(`/busca/${course.id}/curso` as any)}
+              onPress={() => router.push(`/busca/${course.course?.id || course.id}/curso` as any)}
             >
               <View style={styles.courseBody}>
-                <Text style={styles.courseName}>{course.course.name}</Text>
+                <Text style={styles.courseName}>{course.course?.name || 'Curso'}</Text>
                 <Text style={styles.courseDesc} numberOfLines={2}>
-                  {course.details}
+                  {course.details || course.course?.description || ''}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={22} color="#010080" />
