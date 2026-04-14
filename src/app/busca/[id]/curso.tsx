@@ -1,4 +1,5 @@
 import Background from '@/components/layout/background';
+import MapModal from '@/components/MapModal';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -21,6 +22,13 @@ export default function CursoDetailScreen() {
   const [course, setCourse] = useState<Course | null>(null);
   const [imps, setImps] = useState<CourseImp[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [selectedDestination, setSelectedDestination] = useState<{
+    lat: number;
+    lon: number;
+    name: string;
+    collegeName: string;
+  } | null>(null);
 
   useEffect(() => {
     const courseId = parseInt(id || '0', 10);
@@ -94,15 +102,45 @@ export default function CursoDetailScreen() {
           <Text style={styles.emptyText}>Nenhuma implementação disponível</Text>
         ) : (
           imps.map((imp) => (
-            <CourseImpCard key={imp.id} imp={imp} />
+            <CourseImpCard
+              key={imp.id}
+              imp={imp}
+              onOpenMap={() => {
+                setSelectedDestination({
+                  lat: imp.locale?.lat || 0,
+                  lon: imp.locale?.lon || 0,
+                  name: imp.course?.name || 'Curso',
+                  collegeName: imp.college?.name || 'Faculdade',
+                });
+                setMapModalVisible(true);
+              }}
+            />
           ))
         )}
       </ScrollView>
+
+      <MapModal
+        visible={mapModalVisible}
+        onClose={() => setMapModalVisible(false)}
+        destination={
+          selectedDestination || {
+            lat: 0,
+            lon: 0,
+            name: '',
+            collegeName: '',
+          }
+        }
+      />
     </Background>
   );
 }
 
-function CourseImpCard({ imp }: { imp: CourseImp }) {
+interface CourseImpCardProps {
+  imp: CourseImp;
+  onOpenMap: () => void;
+}
+
+function CourseImpCard({ imp, onOpenMap }: CourseImpCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -144,6 +182,11 @@ function CourseImpCard({ imp }: { imp: CourseImp }) {
               <Text style={styles.detailValue}>{String(value)}</Text>
             </View>
           ))}
+
+          <TouchableOpacity style={styles.mapButton} onPress={onOpenMap}>
+            <Ionicons name="map" size={20} color="#FFD700" />
+            <Text style={styles.mapButtonText}>Ver no mapa</Text>
+          </TouchableOpacity>
         </View>
       )}
     </TouchableOpacity>
@@ -277,5 +320,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#555',
     flex: 1,
+  },
+  mapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#010080',
+    borderRadius: 25,
+    paddingVertical: 12,
+    marginTop: 12,
+    gap: 8,
+  },
+  mapButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFD700',
   },
 });

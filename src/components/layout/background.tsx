@@ -6,6 +6,8 @@ import Svg, { Path } from 'react-native-svg';
 
 interface AppBackgroundProps {
   title: string;
+  titleSize?: number;
+  centerTitle?: boolean;
   showUserIcon?: boolean;
   onUserIconPress?: () => void;
   showBackButton?: boolean;
@@ -15,6 +17,8 @@ interface AppBackgroundProps {
 
 export default function Background({ 
   title, 
+  titleSize = 45,
+  centerTitle = false,
   showUserIcon = false, 
   onUserIconPress, 
   showBackButton = false,
