@@ -3,7 +3,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import { Course } from '@/types';
 import { getAllCourses } from '@/services/courseService';
+import CursosSkeleton from '@/components/skeletons/CursosSkeleton';
 
 const { width } = Dimensions.get('window');
 
@@ -75,7 +75,7 @@ export default function CursosScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#010080" style={styles.loader} />
+          <CursosSkeleton />
         ) : filtered.length === 0 ? (
           <Text style={styles.emptyText}>Nenhum curso encontrado</Text>
         ) : (

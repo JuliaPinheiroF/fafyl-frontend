@@ -3,7 +3,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
   Image,
@@ -15,6 +14,7 @@ import {
 } from 'react-native';
 import { College } from '@/types';
 import { getAllColleges } from '@/services/collegeService';
+import FaculdadesSkeleton from '@/components/skeletons/FaculdadesSkeleton';
 
 const { width } = Dimensions.get('window');
 
@@ -79,7 +79,7 @@ export default function FaculdadesScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#010080" style={styles.loader} />
+          <FaculdadesSkeleton />
         ) : filtered.length === 0 ? (
           <Text style={styles.emptyText}>Nenhuma faculdade encontrada</Text>
         ) : (

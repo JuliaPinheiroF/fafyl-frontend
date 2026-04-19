@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   Image,
   ScrollView,
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import FaculdadeDetailSkeleton from '@/components/skeletons/FaculdadeDetailSkeleton';
 
 const { width } = Dimensions.get('window');
 
@@ -35,27 +35,16 @@ export default function FaculdadeDetailScreen() {
     );
   }, [id]);
 
-  const renderCourse = ({ item }: { item: CourseImp }) => (
-    <TouchableOpacity
-      style={styles.courseCard}
-      onPress={() => router.push(`/busca/${item.id}/curso` as any)}
-    >
-      <View style={styles.courseBody}>
-        <Text style={styles.courseName}>{item.course.name}</Text>
-        <Text style={styles.courseDesc} numberOfLines={2}>
-          {item.details}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={22} color="#010080" />
-    </TouchableOpacity>
-  );
-
   if (loading) {
     return (
       <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-        <View style={styles.container}>
-          <ActivityIndicator size="large" color="#010080" style={styles.loader} />
-        </View>
+        <ScrollView 
+          style={styles.container}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <FaculdadeDetailSkeleton />
+        </ScrollView>
       </Background>
     );
   }
