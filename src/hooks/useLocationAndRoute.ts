@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { Platform } from 'react-native';
 
 export type LocationError = 'no_permission' | 'no_internet' | 'gps_disabled' | 'location_unavailable' | 'route_failed' | null;
 
@@ -21,29 +20,31 @@ export interface UseLocationAndRouteReturn {
   clearError: () => void;
 }
 
+const GEOAPIFY_API_KEY = '0b5a3219a82049159d600f759dd39595';
+
+const getErrorMessage = (err: LocationError): string => {
+  switch (err) {
+    case 'no_permission':
+      return 'Localização não permitida. Ative nas configurações.';
+    case 'no_internet':
+      return 'Sem conexão com a internet. Verifique sua rede.';
+    case 'gps_disabled':
+      return 'GPS desabilitado. Ative para ver a rota.';
+    case 'location_unavailable':
+      return 'Não foi possível obter sua localização.';
+    case 'route_failed':
+      return 'Não foi possível calcular a rota. Tente novamente.';
+    default:
+      return 'Erro desconhecido.';
+  }
+};
+
 export default function useLocationAndRoute(): UseLocationAndRouteReturn {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<LocationError>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-
-  const getErrorMessage = (err: LocationError): string => {
-    switch (err) {
-      case 'no_permission':
-        return 'Localização não permitida. Ative nas configurações.';
-      case 'no_internet':
-        return 'Sem conexão com a internet. Verifique sua rede.';
-      case 'gps_disabled':
-        return 'GPS desabilitado. Ative para ver a rota.';
-      case 'location_unavailable':
-        return 'Não foi possível obter sua localização.';
-      case 'route_failed':
-        return 'Não foi possível calcular a rota. Tente novamente.';
-      default:
-        return 'Erro desconhecido.';
-    }
-  };
 
   const getCurrentLocationWeb = useCallback(async (): Promise<void> => {
     return new Promise((resolve, reject) => {
@@ -75,7 +76,6 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
   }, []);
 
   const calculateRouteWeb = async (origin: { lat: number; lon: number }, destination: { lat: number; lon: number }): Promise<RouteResult> => {
-    const GEOAPIFY_API_KEY = '0b5a3219a82049159d600f759dd39595';
     const waypoints = `${origin.lat},${origin.lon}|${destination.lat},${destination.lon}`;
     const url = `https://api.geoapify.com/v1/routing?waypoints=${waypoints}&mode=drive&apiKey=${GEOAPIFY_API_KEY}`;
 
@@ -101,20 +101,21 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
   };
 
   const getCurrentLocation = useCallback(async () => {
-    if (Platform.OS === 'web') {
+    const isWeb = typeof window !== 'undefined' && navigator?.geolocation != null;
+
+    if (isWeb) {
       try {
         setLoading(true);
         setError(null);
         await getCurrentLocationWeb();
       } catch {
-        // Error already set in getCurrentLocationWeb
+        // Error already set
       } finally {
         setLoading(false);
       }
       return;
     }
 
-    // Mobile implementation using expo-location
     const ExpoLocation = await import('expo-location');
     
     try {
@@ -162,15 +163,16 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
   }, [getCurrentLocationWeb]);
 
   const calculateRouteTo = useCallback(async (destination: { lat: number; lon: number }) => {
+    const isWeb = typeof window !== 'undefined' && navigator?.geolocation != null;
+
     try {
       setLoading(true);
       setError(null);
       setRoute(null);
 
-      if (Platform.OS === 'web') {
+      if (isWeb) {
         await getCurrentLocationWeb();
         if (!currentLocation) {
-          // Try one more time after setting
           await new Promise(resolve => setTimeout(resolve, 500));
         }
         
@@ -186,7 +188,6 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
         return;
       }
 
-      // Mobile implementation
       const ExpoLocation = await import('expo-location');
 
       const { status } = await ExpoLocation.getForegroundPermissionsAsync();

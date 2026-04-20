@@ -1,4 +1,5 @@
 import Background from '@/components/layout/background';
+import MapModal from '@/components/MapModal';
 import { getAllColleges, getCollegeCourses } from '@/services/collegeService';
 import { College, CourseImp } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,6 +24,7 @@ export default function FaculdadeDetailScreen() {
   const [college, setCollege] = useState<College | null>(null);
   const [courses, setCourses] = useState<CourseImp[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mapVisible, setMapVisible] = useState(false);
 
   useEffect(() => {
     const collegeId = parseInt(id || '0', 10);
@@ -59,6 +62,8 @@ export default function FaculdadeDetailScreen() {
     );
   }
 
+  const showMapButton = Platform.OS !== 'web' && !!college.locale;
+
   return (
     <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
       <ScrollView 
@@ -71,6 +76,13 @@ export default function FaculdadeDetailScreen() {
           <Text style={styles.collegeName}>{college.name}</Text>
           <Text style={styles.collegeDesc}>{college.description}</Text>
         </View>
+
+        {showMapButton && (
+          <TouchableOpacity style={styles.mapButton} onPress={() => setMapVisible(true)}>
+            <Ionicons name="map" size={20} color="#fff" />
+            <Text style={styles.mapButtonText}>Ver no Mapa</Text>
+          </TouchableOpacity>
+        )}
 
         <Text style={styles.sectionTitle}>Cursos oferecidos:</Text>
 
@@ -94,6 +106,19 @@ export default function FaculdadeDetailScreen() {
           ))
         )}
       </ScrollView>
+
+      {showMapButton && (
+        <MapModal
+          visible={mapVisible}
+          onClose={() => setMapVisible(false)}
+          destination={{
+            lat: college.locale.lat,
+            lon: college.locale.lon,
+            name: college.name,
+            collegeName: college.name,
+          }}
+        />
+      )}
     </Background>
   );
 }
@@ -112,7 +137,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 120,
   },
-  loader: { marginTop: 60 },
   emptyText: {
     textAlign: 'center',
     fontSize: 16,
@@ -171,5 +195,21 @@ const styles = StyleSheet.create({
   courseDesc: {
     fontSize: 13,
     color: '#666',
+  },
+  mapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#010080',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    gap: 8,
+  },
+  mapButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
