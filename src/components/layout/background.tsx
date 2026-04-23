@@ -32,18 +32,33 @@ export default function Background({
     <View style={styles.background}>
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.container}>
-        {/* Header Fixo */}
+        
         <View style={[
           styles.header, 
           showBackButton ? styles.headerLeft : (showUserIcon ? styles.headerSpaced : styles.headerLeft)
         ]}>
+          
           {showBackButton && (
             <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
               <Ionicons name="chevron-back" size={28} color="#FFD700" />
             </TouchableOpacity>
           )}
+
           {!showBackButton && !showUserIcon && <View style={styles.placeholder} />}
-          <Text style={[styles.title, showBackButton && styles.titleWithBack]}>{title}</Text>
+          
+          <View style={[ 
+            styles.titleContainer, 
+            centerTitle && styles.titleContainerCenter 
+          ]}>
+            <Text style={[
+              styles.title, 
+              showBackButton && !centerTitle && styles.titleWithBack,
+              { fontSize: titleSize }
+            ]}>
+              {title}
+            </Text>
+          </View>
+        
           {showUserIcon ? (
             <TouchableOpacity onPress={onUserIconPress} style={styles.iconButton}>
               <Svg width={40} height={40} viewBox="0 0 16 16">
@@ -51,13 +66,14 @@ export default function Background({
                 <Path fill="white" fillRule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/>
               </Svg>            
             </TouchableOpacity>
-          ) : <View style={styles.placeholder} />}
+          ) : (
+            <View style={styles.placeholder} />
+          )}
         </View>
-
-        
         <View style={styles.main}>
           {children}
         </View>
+
       </SafeAreaView>
     </View>
   );
@@ -78,6 +94,22 @@ const styles = StyleSheet.create({
   headerCentered: { justifyContent: 'center' },
   backButton: { padding: 5, marginRight: 10 },
   placeholder: { width: 40 },
+  titleContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  titleContainerCenter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+    pointerEvents: 'none',
+  },
   title: {
     fontFamily: 'AlfaSlabOne_400Regular',
     fontSize: 45,
@@ -91,4 +123,6 @@ const styles = StyleSheet.create({
   },
   iconButton: { padding: 5 },
   main: { flex: 1 }, // REMOVIDO PADDING LATERAL DAQUI
-});
+  },
+
+);
