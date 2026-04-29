@@ -23,9 +23,12 @@ export default function Profile() {
           <View style={styles.avatarCircle}>
             <Ionicons name="person-outline" size={80} color="white" />
           </View>
-          <TouchableOpacity style={styles.changePhotoButton}>
-            <Text style={styles.changePhotoText}>Alterar foto de perfil</Text>
-          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.changePhotoButton}
+            onPress={() => router.push('/profile/capelinhos')} // <--- Adicione esta linha
+            >
+        <Text style={styles.changePhotoText}>Alterar foto de perfil</Text>
+        </TouchableOpacity>
         </View>
 
         {/* Formulário Branco */}

@@ -3,12 +3,12 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// Mapeamento das imagens (o Expo as carrega via require)
+// Mapeamento das imagens
 const AVATARES = [
-  { id: '1', img: require('@/assets/images/curioso.png') },
-  { id: '2', img: require('@/assets/images/triste.png') },
-  { id: '3', img: require('@/assets/images/muitofeliz.png') },
-  { id: '4', img: require('@/assets/images/serio.png') },
+  { id: '1', img: require('../../../assets/images/curioso.png') },
+  { id: '2', img: require('../../../assets/images/triste.png') },
+  { id: '3', img: require('../../../assets/images/muitofeliz.png') },
+  { id: '4', img: require('../../../assets/images/serio.png') },
 ];
 
 export default function SelecionarAvatar() {
