@@ -1,3 +1,10 @@
+export interface ChatMessage {
+  id: string;
+  text: string;
+  role: 'user' | 'bot';
+  timestamp: Date;
+}
+
 export interface Coordinates {
   lat: number;
   lon: number;

@@ -19,6 +19,9 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 
+const { width } = Dimensions.get('window');
+
+
 function useScreenDimensions() {
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
 
