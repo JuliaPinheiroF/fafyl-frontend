@@ -47,7 +47,8 @@ const MOCK_COLLEGES: College[] = [
 
 export async function getAllColleges(): Promise<College[]> {
   try {
-    return await request<College[]>('/college');
+    const response: any = await request('/college');
+    return response.content || response;
   } catch {
     return MOCK_COLLEGES;
   }
@@ -55,7 +56,8 @@ export async function getAllColleges(): Promise<College[]> {
 
 export async function getCollegeCourses(id: number): Promise<CourseImp[]> {
   try {
-    return await request<CourseImp[]>(`/college/${id}/course`);
+    const response: any = await request(`/college/${id}/course`);
+    return response.content || response;
   } catch {
     const allImps = await getAllCourseImps();
     return allImps.filter((imp) => imp.college.id === id);

@@ -5,57 +5,49 @@ const MOCK_COURSES: Course[] = [
   {
     id: 1,
     name: 'Engenharia de Software',
-    abilities: ['Lógica', 'Programação', 'Sistemas', 'Home-office', 'Criatividade'],
-    cantBe: ['Pessoas', 'Times', 'Longa jornada de trabalho'],
+    discWeights: { D: 0.6, I: 0.3, S: 0.4, C: 0.9 },
     description: 'Formação completa em desenvolvimento de software.',
   },
   {
     id: 2,
     name: 'Ciência da Computação',
-    abilities: ['Matemática', 'Lógica', 'Pesquisa', 'Sistemas', 'Análise'],
-    cantBe: ['Pessoas', 'Longa jornada de trabalho', 'Longo tempo de estudo'],
+    discWeights: { D: 0.6, I: 0.3, S: 0.4, C: 0.9 },
     description: 'Base teórica e prática em computação.',
   },
   {
     id: 3,
     name: 'Design Digital',
-    abilities: ['Criatividade', 'Estética', 'Pessoas', 'Home-office'],
-    cantBe: ['Hierarquização', 'Escritório rígido', 'Longo tempo de estudo'],
+    discWeights: { D: 0.3, I: 0.9, S: 0.4, C: 1.0 },
     description: 'Design voltado para interfaces e experiência do usuário.',
   },
   {
     id: 4,
     name: 'Administração de Empresas',
-    abilities: ['Liderança', 'Comunicação', 'Pessoas', 'Times', 'Dinheiro', 'Resolver conflitos'],
-    cantBe: ['Home-office', 'Longa jornada de trabalho', 'Hierarquização'],
+    discWeights: { D: 1.0, I: 0.7, S: 0.5, C: 0.6 },
     description: 'Gestão empresarial moderna e estratégica.',
   },
   {
     id: 5,
     name: 'Inteligência Artificial',
-    abilities: ['Matemática', 'Análise', 'Sistemas', 'Longo tempo de estudo', 'Pesquisa'],
-    cantBe: ['Pessoas', 'Times', 'Resolver conflitos', 'Periculosidade'],
+    discWeights: { D: 0.5, I: 0.3, S: 0.4, C: 0.9 },
     description: 'Machine learning, deep learning e processamento de linguagem natural.',
   },
   {
     id: 6,
     name: 'Sistemas de Informação',
-    abilities: ['Sistemas', 'Programação', 'Comunicação', 'Organização', 'Home-office'],
-    cantBe: ['Pessoas', 'Times', 'Periculosidade', 'Insalubridade'],
+    discWeights: { D: 0.5, I: 0.3, S: 0.4, C: 0.9 },
     description: 'Gestão de sistemas e tecnologia da informação.',
   },
   {
     id: 7,
     name: 'Marketing Digital',
-    abilities: ['Criatividade', 'Comunicação', 'Pessoas', 'Análise', 'Dinheiro'],
-    cantBe: ['Hierarquização', 'Longo tempo de estudo', 'Insalubridade'],
+    discWeights: { D: 0.5, I: 1.0, S: 0.6, C: 0.4 },
     description: 'Estratégias de marketing para o ambiente digital.',
   },
   {
     id: 8,
     name: 'Engenharia Civil',
-    abilities: ['Matemática', 'Cálculo', 'Escritório', 'Resolver conflitos', 'Dinheiro'],
-    cantBe: ['Home-office', 'Longa jornada de trabalho', 'Insalubridade', 'Periculosidade'],
+    discWeights: { D: 0.5, I: 1.0, S: 0.2, C: 0.8 },
     description: 'Projeto e construção de estruturas e edificações.',
   },
 ];
@@ -195,7 +187,8 @@ const MOCK_COURSE_IMPS: CourseImp[] = [
 
 export async function getAllCourses(): Promise<Course[]> {
   try {
-    return await request<Course[]>('/model/course');
+    const response: any = await request('/model/course');
+    return response.content || response;
   } catch {
     return MOCK_COURSES;
   }
@@ -203,7 +196,8 @@ export async function getAllCourses(): Promise<Course[]> {
 
 export async function getAllCourseImps(): Promise<CourseImp[]> {
   try {
-    return await request<CourseImp[]>('/course');
+    const response: any = await request('/course');
+    return response.content || response;
   } catch {
     return MOCK_COURSE_IMPS;
   }

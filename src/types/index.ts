@@ -13,8 +13,7 @@ export interface Coordinates {
 export interface Course {
   id: number;
   name: string;
-  abilities: string[];
-  cantBe: string[];
+  discWeights: Record<string, number>;
   description: string;
 }
 
@@ -36,4 +35,37 @@ export interface CourseImp {
   details: string;
   fees: number;
   locale: Coordinates;
+}
+
+export interface Quiz {
+  discProfile: Record<string, number>;
+}
+
+export interface Fafyl {
+  score: number;
+  course: Course;
+}
+
+export interface Question {
+  id: number;
+  text: string;
+  alternatives: Alternative[];
+}
+
+export interface Alternative {
+  id: number;
+  text: string;
+  dimension: string;
+  weight: number;
+}
+
+export interface QuestionDTO {
+  text: string;
+  alternatives: AlternativeDTO[];
+}
+
+export interface AlternativeDTO {
+  text: string;
+  dimension: string;
+  weight: number;
 }
