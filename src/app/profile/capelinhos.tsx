@@ -1,38 +1,62 @@
 import Background from '@/components/layout/background';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { updateCapelinho, getUserCapelinho, CAPELINHO_IMAGES } from '@/services/capelinhoService';
 
-// Mapeamento das imagens
 const AVATARES = [
-  { id: '1', img: require('../../../assets/images/curioso.png') },
-  { id: '2', img: require('../../../assets/images/triste.png') },
-  { id: '3', img: require('../../../assets/images/muitofeliz.png') },
-  { id: '4', img: require('../../../assets/images/serio.png') },
+  { id: 1, img: CAPELINHO_IMAGES[1] },
+  { id: 2, img: CAPELINHO_IMAGES[2] },
+  { id: 3, img: CAPELINHO_IMAGES[3] },
+  { id: 4, img: CAPELINHO_IMAGES[4] },
 ];
 
 export default function SelecionarAvatar() {
   const router = useRouter();
-  const [selecionado, setSelecionado] = useState('1'); // Inicia com o ID 1 selecionado
+  const [selecionado, setSelecionado] = useState(1);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getUserCapelinho().then((id) => {
+      if (id) setSelecionado(id);
+    });
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateCapelinho(selecionado);
+    } catch (e) {
+      console.error('Failed to update capelinho:', e);
+    } finally {
+      setSaving(false);
+      router.back();
+    }
+  };
 
   return (
-    <Background 
-      title="" // Título vazio como na imagem
-      showBackButton={true} 
+    <Background
+      title=""
+      showBackButton={true}
       onBackPress={() => router.back()}
     >
       <View style={styles.content}>
-        {/* Avatar Principal no Topo */}
         <View style={styles.mainAvatarContainer}>
           <View style={styles.circle}>
-            <Image 
-              source={AVATARES.find(a => a.id === selecionado)?.img} 
-              style={styles.mainAvatarImage} 
+            <Image
+              source={AVATARES.find((a) => a.id === selecionado)?.img}
+              style={styles.mainAvatarImage}
             />
           </View>
         </View>
 
-        {/* Card Branco com o Grid */}
         <View style={styles.whiteCard}>
           <View style={styles.grid}>
             {AVATARES.map((item) => (
@@ -41,7 +65,7 @@ export default function SelecionarAvatar() {
                 onPress={() => setSelecionado(item.id)}
                 style={[
                   styles.avatarOption,
-                  selecionado === item.id && styles.selectedBorder // Aplica a borda se selecionado
+                  selecionado === item.id && styles.selectedBorder,
                 ]}
               >
                 <Image source={item.img} style={styles.optionImage} />
@@ -49,11 +73,16 @@ export default function SelecionarAvatar() {
             ))}
           </View>
 
-          <TouchableOpacity 
-            style={styles.saveButton}
-            onPress={() => router.back()}
+          <TouchableOpacity
+            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={saving}
           >
-            <Text style={styles.saveButtonText}>Salvar Alterações</Text>
+            {saving ? (
+              <ActivityIndicator color="#010080" />
+            ) : (
+              <Text style={styles.saveButtonText}>Salvar Alterações</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -105,7 +134,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   selectedBorder: {
-    borderColor: '#40E0D0', // Cor Verde Água (Turquesa)
+    borderColor: '#40E0D0',
   },
   optionImage: { width: 100, height: 100, resizeMode: 'contain' },
   saveButton: {
@@ -116,6 +145,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 3,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
   saveButtonText: { fontWeight: 'bold', fontSize: 18, color: '#000' },
 });

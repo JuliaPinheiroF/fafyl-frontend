@@ -1,37 +1,51 @@
 import Background from '@/components/layout/background';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Dimensions, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { getCapelinhoImage, getUserCapelinho } from '@/services/capelinhoService';
 
 const { width } = Dimensions.get('window');
 
 export default function Profile() {
   const router = useRouter();
+  const [capelinhoId, setCapelinhoId] = useState<number | null>(null);
+
+  useEffect(() => {
+    getUserCapelinho().then(setCapelinhoId);
+  }, []);
+
+  const avatarImage = getCapelinhoImage(capelinhoId);
 
   return (
-    <Background 
-      title="Meu Perfil" 
+    <Background
+      title="Meu Perfil"
       titleSize={30}
       centerTitle={true}
-      showBackButton={true} 
+      showBackButton={true}
       onBackPress={() => router.back()}
     >
       <View style={styles.content}>
-        {/* Avatar e Botão de Alterar */}
         <View style={styles.avatarContainer}>
           <View style={styles.avatarCircle}>
-            <Ionicons name="person-outline" size={80} color="white" />
+            <Image source={avatarImage} style={styles.avatarImage} />
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.changePhotoButton}
-            onPress={() => router.push('/profile/capelinhos')} // <--- Adicione esta linha
-            >
-        <Text style={styles.changePhotoText}>Alterar foto de perfil</Text>
-        </TouchableOpacity>
+            onPress={() => router.push('/profile/capelinhos' as any)}
+          >
+            <Text style={styles.changePhotoText}>Alterar foto de perfil</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Formulário Branco */}
         <View style={styles.whiteCard}>
           <View style={styles.inputContainer}>
             <TextInput style={styles.input} placeholder="User" placeholderTextColor="#666" />
@@ -40,7 +54,11 @@ export default function Profile() {
             <TextInput style={styles.input} placeholder="CEP" placeholderTextColor="#666" keyboardType="numeric" maxLength={8} />
           </View>
 
-          <TouchableOpacity style={styles.historyButton}>
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={() => router.push('/profile/historico' as any)}
+          >
+            <Ionicons name="time" size={20} color="#010080" style={{ marginRight: 8 }} />
             <Text style={styles.historyButtonText}>Histórico de resultados do quiz</Text>
           </TouchableOpacity>
         </View>
@@ -68,6 +86,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+  },
+  avatarImage: {
+    width: 110,
+    height: 110,
+    resizeMode: 'contain',
   },
   changePhotoButton: {
     backgroundColor: '#FFDE59',
@@ -104,12 +129,13 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#FFDE59',
     width: '100%',
     height: 60,
     borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
