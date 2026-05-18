@@ -81,28 +81,6 @@ export default function CursoDetailScreen() {
           <Text style={styles.courseDesc}>{course.description}</Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Habilidades</Text>
-          <View style={styles.tagsRow}>
-            {(course.abilities || []).map((ability) => (
-              <View key={ability} style={styles.tag}>
-                <Text style={styles.tagText}>{ability}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Não pode ser</Text>
-          <View style={styles.tagsRow}>
-            {(course.cantBe || []).map((item) => (
-              <View key={item} style={styles.tagRed}>
-                <Text style={styles.tagTextRed}>{item}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
         <Text style={styles.sectionTitle}>Cursos implementados:</Text>
 
         {imps.length === 0 ? (
@@ -241,33 +219,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 10,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  tag: {
-    backgroundColor: '#010080',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  tagText: {
-    fontSize: 13,
-    color: '#FFD700',
-    fontWeight: '600',
-  },
-  tagRed: {
-    backgroundColor: '#FF4444',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  tagTextRed: {
-    fontSize: 13,
-    color: '#fff',
-    fontWeight: '600',
   },
   impCard: {
     backgroundColor: '#fff',

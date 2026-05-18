@@ -4,8 +4,9 @@ import { getAllColleges, getCollegeCourses } from '@/services/collegeService';
 import { College, CourseImp } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   Dimensions,
   Image,
   Platform,
@@ -16,15 +17,21 @@ import {
   View,
 } from 'react-native';
 import FaculdadeDetailSkeleton from '@/components/skeletons/FaculdadeDetailSkeleton';
+import { resolveImageUrl } from '@/utils/imageResolver';
 
 const { width } = Dimensions.get('window');
 
 export default function FaculdadeDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, highlightCourseId } = useLocalSearchParams<{ id: string; highlightCourseId?: string }>();
   const [college, setCollege] = useState<College | null>(null);
   const [courses, setCourses] = useState<CourseImp[]>([]);
   const [loading, setLoading] = useState(true);
   const [mapVisible, setMapVisible] = useState(false);
+  const [highlightedId, setHighlightedId] = useState<number | null>(null);
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const courseRefs = useRef<Map<number, View>>(new Map());
+  const pulseAnimations = useRef<Map<number, Animated.Value>>(new Map());
 
   useEffect(() => {
     const collegeId = parseInt(id || '0', 10);
@@ -38,10 +45,62 @@ export default function FaculdadeDetailScreen() {
     );
   }, [id]);
 
+  useEffect(() => {
+    if (highlightCourseId && courses.length > 0 && !loading) {
+      const courseId = parseInt(highlightCourseId, 10);
+      const matchingCourse = courses.find((c) => c.course?.id === courseId);
+      if (matchingCourse) {
+        setHighlightedId(matchingCourse.id);
+
+        const anim = new Animated.Value(1);
+        pulseAnimations.current.set(matchingCourse.id, anim);
+
+        setTimeout(() => {
+          const ref = courseRefs.current.get(matchingCourse.id);
+          if (ref) {
+            ref.measureLayout(
+              scrollViewRef.current as any,
+              (x, y) => {
+                scrollViewRef.current?.scrollTo({ y: y - 60, animated: true });
+              },
+              () => {}
+            );
+          }
+        }, 100);
+
+        Animated.sequence([
+          Animated.timing(anim, { toValue: 1.04, duration: 300, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 1.04, duration: 300, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 1.04, duration: 300, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }),
+        ]).start(() => {
+          setTimeout(() => setHighlightedId(null), 500);
+        });
+      }
+    }
+  }, [highlightCourseId, courses, loading]);
+
+  const getCourseStyle = (courseId: number) => {
+    const anim = pulseAnimations.current.get(courseId);
+    if (anim && highlightedId === courseId) {
+      return {
+        transform: [{ scale: anim }],
+        borderColor: '#FFD700',
+        borderWidth: 3,
+        shadowColor: '#FFD700',
+        shadowOpacity: 0.6,
+        shadowRadius: 12,
+      };
+    }
+    return {};
+  };
+
   if (loading) {
     return (
       <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-        <ScrollView 
+        <ScrollView
           style={styles.container}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -66,12 +125,13 @@ export default function FaculdadeDetailScreen() {
 
   return (
     <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-      <ScrollView 
+      <ScrollView
+        ref={scrollViewRef}
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Image source={{ uri: college.image }} style={styles.headerImage} />
+        {resolveImageUrl(college.image) ? <Image source={{ uri: resolveImageUrl(college.image) }} style={styles.headerImage} /> : null}
         <View style={styles.headerBody}>
           <Text style={styles.collegeName}>{college.name}</Text>
           <Text style={styles.collegeDesc}>{college.description}</Text>
@@ -90,19 +150,26 @@ export default function FaculdadeDetailScreen() {
           <Text style={styles.emptyText}>Nenhum curso disponível</Text>
         ) : (
           courses.map((course) => (
-            <TouchableOpacity
+            <Animated.View
               key={course.id}
-              style={styles.courseCard}
-              onPress={() => router.push(`/busca/${course.course?.id || course.id}/curso` as any)}
+              style={getCourseStyle(course.id)}
+              ref={(ref) => {
+                if (ref) courseRefs.current.set(course.id, ref);
+              }}
             >
-              <View style={styles.courseBody}>
-                <Text style={styles.courseName}>{course.course?.name || 'Curso'}</Text>
-                <Text style={styles.courseDesc} numberOfLines={2}>
-                  {course.details || course.course?.description || ''}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={22} color="#010080" />
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.courseCard}
+                onPress={() => router.push(`/busca/${course.course?.id || course.id}/curso` as any)}
+              >
+                <View style={styles.courseBody}>
+                  <Text style={styles.courseName}>{course.course?.name || 'Curso'}</Text>
+                  <Text style={styles.courseDesc} numberOfLines={2}>
+                    {course.details || course.course?.description || ''}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={22} color="#010080" />
+              </TouchableOpacity>
+            </Animated.View>
           ))
         )}
       </ScrollView>
