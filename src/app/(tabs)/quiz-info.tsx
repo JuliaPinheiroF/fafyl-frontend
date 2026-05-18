@@ -36,7 +36,7 @@ export default function ComoFunciona() {
         {/* Botão Continuar */}
         <TouchableOpacity 
           style={styles.continueButton}
-          onPress={() => router.push('/quiz')} // Mude para a rota do seu quiz
+          onPress={() => router.push('/quiz' as any)}
         >
           <Text style={styles.buttonText}>Continuar</Text>
         </TouchableOpacity>

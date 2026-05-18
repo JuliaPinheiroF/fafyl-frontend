@@ -28,8 +28,8 @@ export default function BuscaScreen() {
           >
             <Ionicons name="book" size={48} color="#FFD700" />
             <Text style={styles.cardTitle}>Cursos</Text>
-        </TouchableOpacity>
-      </View>
+          </TouchableOpacity>
+        </View>
       </View>
     </Background>
   );

@@ -21,7 +21,7 @@ export default function Home() {
 
           <View style={styles.quizSection}>
             <Text style={styles.sectionTitle}>Faça nosso Quiz Indicador:</Text>
-            <TouchableOpacity style={styles.quizButton}>
+            <TouchableOpacity style={styles.quizButton} onPress={() => router.push('/quiz' as any)}>
               <Text style={styles.quizButtonText}>Iniciar quiz</Text>
             </TouchableOpacity>
           </View>

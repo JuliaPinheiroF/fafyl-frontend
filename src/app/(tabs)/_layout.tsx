@@ -39,7 +39,7 @@ export default function TabLayout() {
         })}
       />
       <Tabs.Screen
-        name="quiz"
+        name="quiz-info"
         options={{
           tabBarIcon: ({ color }) => <Ionicons name="bulb-outline" size={30} color={color} />,
         }}
@@ -48,7 +48,7 @@ export default function TabLayout() {
             e.preventDefault();
             navigation.reset({
               index: 0,
-              routes: [{ name: 'quiz' }],
+              routes: [{ name: 'quiz-info' }],
             });
           },
         })}
