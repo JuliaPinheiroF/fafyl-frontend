@@ -1,7 +1,11 @@
 import Background from '@/components/layout/background';
 import MapModal from '@/components/MapModal';
+import CursoDetailSkeleton from '@/components/skeletons/CursoDetailSkeleton';
+import { getAllCourses } from '@/services/courseService';
+import { getCollegesWithCourse } from '@/services/fafylService';
+import { Course, College, CourseImp } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
@@ -12,27 +16,24 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Course, CourseImp } from '@/types';
-import { getAllCourses, getCourseImpsByCourseId } from '@/services/courseService';
-import CursoDetailSkeleton from '@/components/skeletons/CursoDetailSkeleton';
 
 const { width } = Dimensions.get('window');
 
 export default function CursoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [course, setCourse] = useState<Course | null>(null);
-  const [imps, setImps] = useState<CourseImp[]>([]);
+  const [items, setItems] = useState<{ college: College; courseImp: CourseImp }[]>([]);
   const [loading, setLoading] = useState(true);
   const [mapVisible, setMapVisible] = useState(false);
   const [selectedImp, setSelectedImp] = useState<CourseImp | null>(null);
 
   useEffect(() => {
     const courseId = parseInt(id || '0', 10);
-    Promise.all([getAllCourses(), getCourseImpsByCourseId(courseId)]).then(
-      ([courses, courseImps]) => {
+    Promise.all([getAllCourses(), getCollegesWithCourse(courseId)]).then(
+      ([courses, results]) => {
         const found = courses.find((c) => c.id === courseId);
         setCourse(found || null);
-        setImps(courseImps);
+        setItems(results);
         setLoading(false);
       }
     );
@@ -81,15 +82,15 @@ export default function CursoDetailScreen() {
           <Text style={styles.courseDesc}>{course.description}</Text>
         </View>
 
-        <Text style={styles.sectionTitle}>Cursos implementados:</Text>
+        <Text style={styles.sectionTitle}>Faculdades com {course.name}:</Text>
 
-        {imps.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhuma implementação disponível</Text>
+        {items.length === 0 ? (
+          <Text style={styles.emptyText}>Nenhuma faculdade com esse curso</Text>
         ) : (
-          imps.map((imp) => (
+          items.map(({ college, courseImp }) => (
             <CourseImpCard 
-              key={imp.id} 
-              imp={imp} 
+              key={courseImp.id} 
+              imp={{ ...courseImp, college }}
               isMobile={isMobile} 
               onViewMap={handleViewMap} 
             />
@@ -125,6 +126,8 @@ interface CourseImpCardProps {
 function CourseImpCard({ imp, isMobile, onViewMap }: CourseImpCardProps) {
   const [expanded, setExpanded] = useState(false);
 
+  const collegeName = imp.college?.name || 'Faculdade';
+
   return (
     <TouchableOpacity
       style={styles.impCard}
@@ -133,7 +136,7 @@ function CourseImpCard({ imp, isMobile, onViewMap }: CourseImpCardProps) {
     >
       <View style={styles.impHeader}>
         <View style={styles.impInfo}>
-          <Text style={styles.impCollege}>{imp.college?.name || imp.course?.name || 'Faculdade'}</Text>
+          <Text style={styles.impCollege}>{collegeName}</Text>
           <Text style={styles.impFees}>
             {imp.fees ? `R$ ${imp.fees.toFixed(2).replace('.', ',')}` : 'Preço não disponível'}
           </Text>
