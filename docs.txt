@@ -168,6 +168,152 @@ Cliente → Controller → FafylService → CourseRepo (streamAll)
 ```
 > As perguntas são persistidas com cascade — alternativas são salvas automaticamente junto com a pergunta.
 ---
+## Fluxo do usuário (User Flow)
+
+### 1. Cadastro
+Usuário preenche nome, email, senha e CEP.
+```
+Usuário         Frontend                Backend
+  |                |                      |
+  |-- preenche --> |                      |
+  |   formulário   |                      |
+  |                |-- POST /auth/register -->|
+  |                |   { name, email,        |
+  |                |     password, locale }   |
+  |                |                      |-- valida email único
+  |                |                      |-- cria User (BCrypt)
+  |                |                      |-- gera JWT (30min)
+  |                |<---- 201 { token } ----|
+  |<-- redireciona --|                      |
+  |   para /home    |                      |
+```
+
+### 2. Login
+Usuário informa email e senha.
+```
+Usuário         Frontend                Backend
+  |                |                      |
+  |-- email/pass ->|                      |
+  |                |-- POST /auth/login ->|
+  |                |   { email, password } |
+  |                |                      |-- findByEmail
+  |                |                      |-- passwordEncoder.matches
+  |                |                      |-- gera JWT (30min)
+  |                |<---- 200 { token } ----|
+  |<-- redireciona --|                      |
+  |   para /home    |                      |
+```
+Requisições autenticadas usam `Authorization: Bearer <token>`.
+Renovação via `POST /auth/renew` com o access token ainda válido.
+
+### 3. Quiz DISC
+Usuário responde 12 perguntas; cada alternativa acumula peso em D/I/S/C.
+```
+Usuário         Frontend                    Backend
+  |                |                          |
+  |                |-- GET /data/questions -->|
+  |                |  (fallback: mock local)  |
+  |                |<--- 200 [Question] ------|
+  |                |                          |
+  |-- pergunta 1 ->|                          |
+  |   escolhe alt  |  acumula weight p/       |
+  |                |  dimensão (D/I/S/C)      |
+  |--    ...     ->|  ...                     |
+  |-- pergunta 12->|                          |
+  |   escolhe alt  |  discProfile =           |
+  |                |  { D: X, I: Y,           |
+  |                |    S: Z, C: W }          |
+```
+
+### 4. Recomendações
+Frontend envia perfil; backend retorna cursos ranqueados por compatibilidade.
+```
+Frontend (quiz/resultado)     Backend
+  |                              |
+  |-- GET /fafyl --------------->|
+  |   { discProfile }            |
+  |   + page, size               |
+  |                              |-- streamAll courses
+  |                              |-- p/ cada course:
+  |                              |   score = dotProduct(
+  |                              |     discProfile,
+  |                              |     course.discWeights)
+  |                              |-- filter score > 0
+  |                              |-- sort desc por score
+  |                              |-- paginate
+  |<--- 200 [{ score, course }]--|
+  |                              |-- [async] save historico
+  |                              |   { userId, courseId, now }
+```
+
+### 5. Filtrar faculdades por distância
+Usuário filtra ofertas por localização (Haversine + Geoapify).
+```
+Frontend                        Backend                 Geoapify API
+  |                               |                        |
+  |-- POST /fafyl/courses ------->|                        |
+  |   { courses: [ids],           |                        |
+  |     distance, location }      |                        |
+  |                               |-- Haversine SQL        |
+  |                               |   (margem 1.3×)        |
+  |                               |                        |
+  |                               |-- p/ cada candidato:   |
+  |                               |-- GET /routing ------->|
+  |                               |   (waypoints, drive)   |
+  |                               |<--- { distance } ------|
+  |                               |   (distância real)     |
+  |<--- 200 [CourseImpDTO] -------|                        |
+```
+
+### 6. Navegação por cursos/faculdades
+```
+Frontend                        Backend
+  |                               |
+  |-- GET /model/course --------->|
+  |<--- 200 [Course] -------------|
+  |                               |
+  |-- GET /college --------------->|
+  |<--- 200 [College] ------------|
+  |                               |
+  |-- GET /college/{id}/course -->|
+  |<--- 200 [CourseImp] ----------|
+  |                               |
+  |-- GET /college/{id}/course/{courseId} -->|
+  |<--- 200 CourseImp ----------------------|
+```
+
+### 7. Perfil e capelinho
+```
+Frontend                        Backend
+  |                               |
+  |-- GET /auth/me --------------->|
+  |<--- 200 UserDTO --------------|
+  |                               |
+  |-- PUT /auth/capelinho/{id} -->|
+  |<--- 200 UserDTO --------------|
+  |                               |
+  |-- POST /auth/coordinates ---->|
+  |   { lat, lon }               |
+  |<--- 200 UserDTO --------------|
+  |                               |
+  |-- GET /auth/history ---------->|
+  |<--- 200 [History] ------------|
+```
+
+### 8. Mapa (rota)
+```
+Frontend                    expo-location      Geoapify API
+  |                             |                  |
+  |-- requestPermission() ----->|                  |
+  |<-- { coords } --------------|                  |
+  |                             |                  |
+  |-- GET /v1/routing --------------------------->|
+  |   waypoints=user;dest, drive                  |
+  |<--- { distance, duration, polyline } ---------|
+  |                             |                  |
+  |-- renderiza rota no mapa    |                  |
+```
+---
 ## Regras de negócio resumidas
 | regra | detalhe |
 |---|---|
