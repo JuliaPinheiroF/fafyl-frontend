@@ -2,36 +2,39 @@ import Background from '@/components/layout/background';
 import MapModal from '@/components/MapModal';
 import { getAllColleges, getCollegeCourses } from '@/services/collegeService';
 import { College, CourseImp } from '@/types';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { IoChevronForward, IoMap } from 'react-icons/io5';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Dimensions,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { motion } from 'framer-motion';
 import FaculdadeDetailSkeleton from '@/components/skeletons/FaculdadeDetailSkeleton';
 import { resolveImageUrl } from '@/utils/imageResolver';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import PageTransition from '@/components/layout/PageTransition';
 
-const { width } = Dimensions.get('window');
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
 
 export default function FaculdadeDetailScreen() {
-  const { id, highlightCourseId } = useLocalSearchParams<{ id: string; highlightCourseId?: string }>();
+  const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const highlightCourseId = searchParams.get('highlightCourseId');
   const [college, setCollege] = useState<College | null>(null);
   const [courses, setCourses] = useState<CourseImp[]>([]);
   const [loading, setLoading] = useState(true);
   const [mapVisible, setMapVisible] = useState(false);
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
+  const [pulseStep, setPulseStep] = useState(0);
 
-  const scrollViewRef = useRef<ScrollView>(null);
-  const courseRefs = useRef<Map<number, View>>(new Map());
-  const pulseAnimations = useRef<Map<number, Animated.Value>>(new Map());
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const collegeId = parseInt(id || '0', 10);
@@ -51,232 +54,150 @@ export default function FaculdadeDetailScreen() {
       const matchingCourse = courses.find((c) => c.course?.id === courseId);
       if (matchingCourse) {
         setHighlightedId(matchingCourse.id);
-
-        const anim = new Animated.Value(1);
-        pulseAnimations.current.set(matchingCourse.id, anim);
-
         setTimeout(() => {
-          const ref = courseRefs.current.get(matchingCourse.id);
-          if (ref) {
-            ref.measureLayout(
-              scrollViewRef.current as any,
-              (x, y) => {
-                scrollViewRef.current?.scrollTo({ y: y - 60, animated: true });
-              },
-              () => {}
-            );
+          const element = document.getElementById(`course-${matchingCourse.id}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         }, 100);
-
-        Animated.sequence([
-          Animated.timing(anim, { toValue: 1.04, duration: 300, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 1.04, duration: 300, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 1.04, duration: 300, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }),
-        ]).start(() => {
-          setTimeout(() => setHighlightedId(null), 500);
-        });
+        let step = 0;
+        const interval = setInterval(() => {
+          step++;
+          setPulseStep(step);
+          if (step >= 6) {
+            clearInterval(interval);
+            setTimeout(() => {
+              setHighlightedId(null);
+              setPulseStep(0);
+            }, 500);
+          }
+        }, 300);
       }
     }
   }, [highlightCourseId, courses, loading]);
 
-  const getCourseStyle = (courseId: number) => {
-    const anim = pulseAnimations.current.get(courseId);
-    if (anim && highlightedId === courseId) {
-      return {
-        transform: [{ scale: anim }],
-        borderColor: '#FFD700',
-        borderWidth: 3,
-        shadowColor: '#FFD700',
-        shadowOpacity: 0.6,
-        shadowRadius: 12,
-      };
-    }
-    return {};
-  };
+  const isHighlighted = (courseId: number) => highlightedId === courseId;
 
   if (loading) {
     return (
-      <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <FaculdadeDetailSkeleton />
-        </ScrollView>
+      <Background title="FAFYL" showBackButton>
+        <PageTransition>
+          <div className="flex-1"><FaculdadeDetailSkeleton /></div>
+        </PageTransition>
       </Background>
     );
   }
 
   if (!college) {
     return (
-      <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-        <View style={styles.container}>
-          <Text style={styles.emptyText}>Faculdade não encontrada</Text>
-        </View>
+      <Background title="FAFYL" showBackButton>
+        <PageTransition>
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-muted-foreground">Faculdade não encontrada</p>
+          </div>
+        </PageTransition>
       </Background>
     );
   }
 
-  const showMapButton = Platform.OS !== 'web' && !!college.locale;
-
   return (
-    <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.container}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {resolveImageUrl(college.image) ? <Image source={{ uri: resolveImageUrl(college.image) }} style={styles.headerImage} /> : null}
-        <View style={styles.headerBody}>
-          <Text style={styles.collegeName}>{college.name}</Text>
-          <Text style={styles.collegeDesc}>{college.description}</Text>
-        </View>
-
-        {showMapButton && (
-          <TouchableOpacity style={styles.mapButton} onPress={() => setMapVisible(true)}>
-            <Ionicons name="map" size={20} color="#fff" />
-            <Text style={styles.mapButtonText}>Ver no Mapa</Text>
-          </TouchableOpacity>
-        )}
-
-        <Text style={styles.sectionTitle}>Cursos oferecidos:</Text>
-
-        {courses.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhum curso disponível</Text>
-        ) : (
-          courses.map((course) => (
-            <Animated.View
-              key={course.id}
-              style={getCourseStyle(course.id)}
-              ref={(ref) => {
-                if (ref) courseRefs.current.set(course.id, ref);
-              }}
-            >
-              <TouchableOpacity
-                style={styles.courseCard}
-                onPress={() => router.push(`/busca/${course.course?.id || course.id}/curso` as any)}
+    <Background title="FAFYL" showBackButton>
+      <PageTransition>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            animate="visible"
+          >
+            {resolveImageUrl(college.image) && (
+              <motion.div
+                className="h-44 rounded-2xl overflow-hidden mb-5"
+                variants={fadeUp}
               >
-                <View style={styles.courseBody}>
-                  <Text style={styles.courseName}>{course.course?.name || 'Curso'}</Text>
-                  <Text style={styles.courseDesc} numberOfLines={2}>
-                    {course.details || course.course?.description || ''}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={22} color="#010080" />
-              </TouchableOpacity>
-            </Animated.View>
-          ))
-        )}
-      </ScrollView>
+                <img
+                  src={resolveImageUrl(college.image)}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  alt=""
+                />
+              </motion.div>
+            )}
 
-      {showMapButton && (
-        <MapModal
-          visible={mapVisible}
-          onClose={() => setMapVisible(false)}
-          destination={{
-            lat: college.locale.lat,
-            lon: college.locale.lon,
-            name: college.name,
-            collegeName: college.name,
-          }}
-        />
-      )}
+            <motion.div className="mb-5" variants={fadeUp}>
+              <h1 className="text-2xl font-bold text-primary mb-2">{college.name}</h1>
+              <p className="text-sm text-muted-foreground leading-relaxed">{college.description}</p>
+            </motion.div>
+
+            {college.locale && (
+              <motion.div variants={fadeUp}>
+                <Button size="lg" className="w-full mb-5 gap-2" onClick={() => setMapVisible(true)}>
+                  <IoMap size={18} />
+                  Ver no Mapa
+                </Button>
+              </motion.div>
+            )}
+
+            <motion.h2 className="text-lg font-semibold text-foreground mb-4" variants={fadeUp}>
+              Cursos oferecidos:
+            </motion.h2>
+
+            {courses.length === 0 ? (
+              <motion.p
+                className="text-center text-sm text-muted-foreground mt-10"
+                variants={fadeUp}
+              >
+                Nenhum curso disponível
+              </motion.p>
+            ) : (
+              <motion.div className="space-y-3 pb-24" variants={fadeUp}>
+                {courses.map((course) => (
+                  <motion.div
+                    key={course.id}
+                    id={`course-${course.id}`}
+                    animate={isHighlighted(course.id) ? {
+                      scale: pulseStep % 2 === 1 ? 1.04 : 1,
+                      borderColor: '#FFD700',
+                      borderWidth: 3,
+                      boxShadow: '0 0 12px rgba(255, 215, 0, 0.6)',
+                    } : {
+                      scale: 1,
+                      borderColor: 'transparent',
+                      borderWidth: 0,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                    }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <button
+                      className="flex items-center bg-card rounded-2xl p-4 w-full text-left cursor-pointer border-none shadow-sm active:scale-[0.99] transition-transform"
+                      onClick={() => navigate(`/busca/${course.course?.id || course.id}/curso`)}
+                    >
+                      <div className="flex-1 min-w-0 mr-2.5">
+                        <p className="text-base font-semibold text-primary mb-1 truncate">{course.course?.name || 'Curso'}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{course.details || course.course?.description || ''}</p>
+                      </div>
+                      <div className="shrink-0 group-hover:translate-x-1 transition-transform">
+                        <IoChevronForward size={20} className="text-primary shrink-0" />
+                      </div>
+                    </button>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </motion.div>
+        </div>
+
+        {college.locale && (
+          <MapModal
+            visible={mapVisible}
+            onClose={() => setMapVisible(false)}
+            destination={{
+              lat: college.locale.lat,
+              lon: college.locale.lon,
+              name: college.name,
+              collegeName: college.name,
+            }}
+          />
+        )}
+      </PageTransition>
     </Background>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    width: width,
-    marginTop: 40,
-  },
-  scrollContent: {
-    paddingHorizontal: 25,
-    paddingTop: 10,
-    paddingBottom: 120,
-  },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: '#666',
-    marginTop: 40,
-  },
-  headerImage: {
-    width: '100%',
-    height: 180,
-    borderRadius: 25,
-    marginBottom: 20,
-  },
-  headerBody: {
-    marginBottom: 20,
-  },
-  collegeName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#010080',
-    marginBottom: 8,
-  },
-  collegeDesc: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  courseCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  courseBody: {
-    flex: 1,
-    marginRight: 10,
-  },
-  courseName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#010080',
-    marginBottom: 4,
-  },
-  courseDesc: {
-    fontSize: 13,
-    color: '#666',
-  },
-  mapButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#010080',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    gap: 8,
-  },
-  mapButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

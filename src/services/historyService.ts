@@ -1,3 +1,4 @@
+import { USE_MOCKS } from '@/config/env';
 import { API_BASE, request } from './api';
 
 export interface HistoryEntry {
@@ -17,6 +18,7 @@ export interface HistoryEntry {
 }
 
 export async function getHistory(): Promise<HistoryEntry[]> {
+  if (USE_MOCKS) return [];
   try {
     return await request<HistoryEntry[]>('/auth/history');
   } catch {

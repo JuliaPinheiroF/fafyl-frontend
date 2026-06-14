@@ -1,25 +1,35 @@
 import Background from '@/components/layout/background';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { IoChevronBack, IoChevronForward, IoStar } from 'react-icons/io5';
+import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Question } from '@/types';
 import { getQuestions, computeDiscProfile } from '@/services/quizService';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import PageTransition from '@/components/layout/PageTransition';
 
-const { width } = Dimensions.get('window');
+const questionVariants = {
+  enter: { opacity: 0, x: 60 },
+  center: { opacity: 1, x: 0, transition: { duration: 0.3 } },
+  exit: { opacity: 0, x: -60, transition: { duration: 0.2 } },
+};
+
+const altVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { delay: 0.05 * i, duration: 0.25 },
+  }),
+};
 
 export default function QuizScreen() {
+  const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Map<number, number>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [direction, setDirection] = useState(1);
 
   useEffect(() => {
     getQuestions().then((data) => {
@@ -36,22 +46,21 @@ export default function QuizScreen() {
 
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
+      setDirection(1);
       setCurrentIndex(currentIndex + 1);
     } else {
       const profile = computeDiscProfile(answers, questions);
       const profileStr = JSON.stringify(profile);
-      router.push({
-        pathname: '/quiz/resultado',
-        params: { profile: profileStr },
-      } as any);
+      navigate('/quiz/resultado?profile=' + encodeURIComponent(profileStr));
     }
   };
 
   const handleBack = () => {
     if (currentIndex > 0) {
+      setDirection(-1);
       setCurrentIndex(currentIndex - 1);
     } else {
-      router.back();
+      navigate(-1);
     }
   };
 
@@ -63,254 +72,98 @@ export default function QuizScreen() {
 
   if (loading || questions.length === 0) {
     return (
-      <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Carregando perguntas...</Text>
-        </View>
+      <Background title="FAFYL" showBackButton>
+        <PageTransition>
+          <div className="flex-1 flex justify-center items-center">
+            <span className="text-muted-foreground animate-pulse">
+              Carregando perguntas...
+            </span>
+          </div>
+        </PageTransition>
       </Background>
     );
   }
 
   return (
     <Background title="FAFYL" showBackButton onBackPress={handleBack}>
-      <View style={styles.container}>
-        {/* Progress bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-          </View>
-          <Text style={styles.progressText}>
-            Pergunta {currentIndex + 1} de {questions.length}
-          </Text>
-        </View>
+      <PageTransition>
+        <div className="flex-1 flex flex-col">
+          <div className="px-4 pt-4 pb-2">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-primary rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress * 100}%` }}
+                transition={{ duration: 0.4 }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground text-center block mt-2">
+              Pergunta {currentIndex + 1} de {questions.length}
+            </span>
+          </div>
 
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Question card */}
-          <View style={styles.questionCard}>
-            <Text style={styles.questionText}>{currentQuestion.text}</Text>
-          </View>
+          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={currentQuestion.id}
+                custom={direction}
+                variants={questionVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="space-y-4"
+              >
+                <Card className="p-5 rounded-2xl">
+                  <h2 className="text-lg font-semibold text-primary leading-relaxed">{currentQuestion.text}</h2>
+                </Card>
 
-          {/* Alternatives */}
-          <View style={styles.alternativesContainer}>
-            {currentQuestion.alternatives.map((alt) => {
-              const isSelected = selectedAltId === alt.id;
-              return (
-                <TouchableOpacity
-                  key={alt.id}
-                  style={[
-                    styles.alternativeCard,
-                    isSelected && styles.alternativeSelected,
-                  ]}
-                  onPress={() => handleSelect(alt.id)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.radioCircle,
-                      isSelected && styles.radioCircleSelected,
-                    ]}
-                  >
-                    {isSelected && <View style={styles.radioDot} />}
-                  </View>
-                  <Text
-                    style={[
-                      styles.alternativeText,
-                      isSelected && styles.alternativeTextSelected,
-                    ]}
-                  >
-                    {alt.text}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
+                <div className="space-y-3">
+                  {currentQuestion.alternatives.map((alt, i) => {
+                    const isSelected = selectedAltId === alt.id;
+                    return (
+                      <button
+                        key={alt.id}
+                        className={`w-full text-left bg-card rounded-xl p-4 flex items-center gap-3 cursor-pointer border-2 transition-all active:scale-[0.98] ${
+                          isSelected ? 'border-accent bg-accent/5' : 'border-transparent hover:border-primary/20'
+                        }`}
+                        onClick={() => handleSelect(alt.id)}
+                      >
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          isSelected ? 'border-primary' : 'border-muted-foreground/30'
+                        }`}>
+                          {isSelected && <div className="w-3 h-3 rounded-full bg-accent animate-scale-in" />}
+                        </div>
+                        <span className={`text-sm flex-1 ${isSelected ? 'font-semibold text-primary' : 'text-foreground'}`}>
+                          {alt.text}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
-        {/* Navigation buttons */}
-        <View style={styles.buttonRow}>
-          {!isFirstQuestion && (
-            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-              <Ionicons name="chevron-back" size={20} color="#010080" />
-              <Text style={styles.backButtonText}>Voltar</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[
-              styles.nextButton,
-              !selectedAltId && styles.nextButtonDisabled,
-            ]}
-            onPress={handleNext}
-            disabled={!selectedAltId}
-          >
-            <Text style={styles.nextButtonText}>
-              {isLastQuestion ? 'Ver resultado' : 'Próxima'}
-            </Text>
-            <Ionicons
-              name={isLastQuestion ? 'star' : 'chevron-forward'}
-              size={20}
-              color="#010080"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+            {!isFirstQuestion && (
+              <Button variant="ghost" className="gap-1.5" onClick={handleBack}>
+                <IoChevronBack size={18} />
+                Voltar
+              </Button>
+            )}
+            {isFirstQuestion && <div />}
+            <Button
+              variant="accent"
+              className="gap-2"
+              onClick={handleNext}
+              disabled={!selectedAltId}
+            >
+              <span>{isLastQuestion ? 'Ver resultado' : 'Próxima'}</span>
+              {isLastQuestion ? <IoStar size={18} /> : <IoChevronForward size={18} />}
+            </Button>
+          </div>
+        </div>
+      </PageTransition>
     </Background>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    width: width,
-    marginTop: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  progressContainer: {
-    paddingHorizontal: 25,
-    paddingTop: 20,
-    paddingBottom: 10,
-  },
-  progressTrack: {
-    height: 8,
-    backgroundColor: '#DDD',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#010080',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 13,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 6,
-  },
-  scrollContent: {
-    paddingHorizontal: 25,
-    paddingTop: 10,
-    paddingBottom: 20,
-  },
-  questionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  questionText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#010080',
-    lineHeight: 26,
-  },
-  alternativesContainer: {
-    gap: 12,
-  },
-  alternativeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 1,
-  },
-  alternativeSelected: {
-    borderColor: '#FFD700',
-    borderWidth: 2,
-    backgroundColor: '#FFFDE7',
-  },
-  radioCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: '#CCC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  radioCircleSelected: {
-    borderColor: '#010080',
-  },
-  radioDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FFD700',
-  },
-  alternativeText: {
-    fontSize: 15,
-    color: '#333',
-    flex: 1,
-  },
-  alternativeTextSelected: {
-    fontWeight: '600',
-    color: '#010080',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 25,
-    paddingVertical: 16,
-    backgroundColor: '#F5F5F5',
-    borderTopWidth: 1,
-    borderTopColor: '#EEE',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#010080',
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  nextButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFDE59',
-    borderRadius: 25,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-  nextButtonDisabled: {
-    opacity: 0.5,
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#010080',
-    marginRight: 8,
-  },
-});

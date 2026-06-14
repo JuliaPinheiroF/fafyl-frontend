@@ -1,5 +1,4 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
 import Skeleton from './Skeleton';
 
 const NUM_TAGS = 4;
@@ -7,93 +6,45 @@ const NUM_IMPS = 3;
 
 export default function CursoDetailSkeleton() {
   return (
-    <View style={_styles.container}>
-      <View style={_styles.header}>
+    <div className="flex-1 bg-[#F5F5F5] px-[25px] pt-5">
+      <div className="mb-6">
         <Skeleton width="80%" height={24} />
         <Skeleton width="100%" height={14} style={{ marginTop: 6 }} />
-      </View>
+      </div>
 
-      <View style={_styles.section}>
+      <div className="mb-6">
         <Skeleton width={100} height={16} />
-        <View style={_styles.tagsRow}>
+        <div className="flex flex-wrap gap-2 mt-[10px]">
           {Array.from({ length: NUM_TAGS }).map((_, i) => (
-            <Skeleton
-              key={i}
-              width={70}
-              height={28}
-              borderRadius={20}
-            />
+            <Skeleton key={i} width={70} height={28} borderRadius={20} />
           ))}
-        </View>
-      </View>
+        </div>
+      </div>
 
-      <View style={_styles.section}>
+      <div className="mb-6">
         <Skeleton width={120} height={16} />
-        <View style={_styles.tagsRow}>
+        <div className="flex flex-wrap gap-2 mt-[10px]">
           {Array.from({ length: NUM_TAGS }).map((_, i) => (
-            <Skeleton
-              key={i}
-              width={90}
-              height={28}
-              borderRadius={20}
-            />
+            <Skeleton key={i} width={90} height={28} borderRadius={20} />
           ))}
-        </View>
-      </View>
+        </div>
+      </div>
 
       <Skeleton width={200} height={16} style={{ marginTop: 8 }} />
 
-      <View style={_styles.imps}>
+      <div className="pb-[120px]">
         {Array.from({ length: NUM_IMPS }).map((_, i) => (
-          <View key={i} style={_styles.impCard}>
-            <View style={_styles.impHeader}>
-              <View style={_styles.impInfo}>
+          <div key={i} className="bg-[#E0E0E0] rounded-[16px] p-4 mb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
                 <Skeleton width="60%" height={16} />
                 <Skeleton width="40%" height={15} style={{ marginTop: 2 }} />
-              </View>
+              </div>
               <Skeleton width={22} height={22} borderRadius={11} />
-            </View>
-          </View>
+            </div>
+          </div>
         ))}
-      </View>
-    </View>
+      </div>
+    </div>
   );
 }
-
-const _styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 25,
-    paddingTop: 20,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
-    gap: 8,
-  },
-  imps: {
-    paddingBottom: 120,
-  },
-  impCard: {
-    backgroundColor: '#E0E0E0',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-  },
-  impHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  impInfo: {
-    flex: 1,
-  },
-});

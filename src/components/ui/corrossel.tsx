@@ -1,38 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Dimensions,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
-
-import Animated, {
-  interpolate,
-  scrollTo,
-  useAnimatedRef,
-  useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useDerivedValue,
-  useSharedValue,
-} from 'react-native-reanimated';
-
-const { width } = Dimensions.get('window');
-
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 
 function useScreenDimensions() {
-  const [dimensions, setDimensions] = useState(Dimensions.get('window'));
-
+  const [width, setWidth] = useState(window.innerWidth);
   useEffect(() => {
-    const sub = Dimensions.addEventListener('change', ({ window }) => {
-      setDimensions(window);
-    });
-    return () => sub?.remove();
+    const handle = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handle);
+    return () => window.removeEventListener('resize', handle);
   }, []);
-
-  return dimensions;
+  return width;
 }
 
 interface College {
@@ -51,160 +26,150 @@ const MOCK_COLLEGES: College[] = [
   { id: '5', name: 'Smart College', description: 'Inteligência Artificial', color: '#6633ff', image: 'https://images.unsplash.com/photo-1519452635265-7b1fbfd1e4e0?w=400&q=80' },
 ];
 
-const REPEAT_COUNT = 10;
-const DATA = Array(REPEAT_COUNT).fill(MOCK_COLLEGES).flat();
+const CARD_MARGIN = 6;
 
-const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
-
-// =========================
-// Card
-// =========================
-function Card({ item, index, scrollX, cardWidth, itemWidth, screenWidth }: any) {
-  const animatedStyle = useAnimatedStyle(() => {
-    const center = index * itemWidth;
-    const distance = Math.abs(scrollX.value - center);
-
-    const scale = interpolate(distance, [0, screenWidth], [1, 0.8]);
-    const opacity = interpolate(distance, [0, screenWidth], [1, 0.4]);
-
-    return {
-      transform: [{ scale }],
-      opacity,
-    };
-  });
+function Card({ item, index, scrollLeft, cardWidth, containerWidth, onViewCollege }: { item: College; index: number; scrollLeft: number; cardWidth: number; containerWidth: number; onViewCollege?: (id: string) => void }) {
+  const center = index * (cardWidth + CARD_MARGIN * 2) + cardWidth / 2;
+  const viewCenter = scrollLeft + containerWidth / 2;
+  const distance = Math.abs(viewCenter - center);
+  const scale = Math.max(0.8, 1 - (distance / containerWidth) * 0.2);
+  const opacity = Math.max(0.4, 1 - (distance / containerWidth) * 0.6);
 
   return (
-    <Animated.View style={[{ width: cardWidth, marginHorizontal: 6 }, animatedStyle]}>
-      <View style={styles.card}>
-        <Image source={{ uri: item.image }} style={styles.image} />
-        <View style={styles.content}>
-          <Text style={styles.title}>{item.name}</Text>
-          <Text style={styles.desc}>{item.description}</Text>
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>Ver mais</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Animated.View>
+    <div
+      style={{
+        width: cardWidth,
+        margin: '0 6px',
+        flexShrink: 0,
+        transform: `scale(${scale})`,
+        opacity,
+        transition: 'transform 0.15s ease-out, opacity 0.15s ease-out',
+      }}
+    >
+      <div
+        style={{
+          borderRadius: 25,
+          overflow: 'hidden',
+          backgroundColor: '#010080',
+        }}
+      >
+        <img
+          src={item.image}
+          alt={item.name}
+          style={{ width: '100%', height: 100, objectFit: 'cover', display: 'block' }}
+        />
+        <div style={{ padding: 16, textAlign: 'center' as const }}>
+          <p style={{ fontSize: 20, fontWeight: 'bold', color: '#FFD700', margin: 0 }}>{item.name}</p>
+          <p style={{ fontSize: 13, color: '#fff', textAlign: 'center', margin: '8px 0' }}>{item.description}</p>
+          <button
+            onClick={() => onViewCollege?.(item.id)}
+            style={{
+              backgroundColor: '#FFD700',
+              borderRadius: 20,
+              padding: '0 20px',
+              height: 36,
+              border: 'none',
+              fontWeight: 'bold',
+              color: '#000',
+              cursor: 'pointer',
+            }}
+          >
+            Ver mais
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
-export default function Corrossel() {
-  const flatListRef = useAnimatedRef<FlatList>();
-  const { width: screenWidth } = useScreenDimensions();
+export default function Corrossel({ onViewCollege }: { onViewCollege?: (id: string) => void }) {
+  const screenWidth = useScreenDimensions();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const pauseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const REPEAT_COUNT = 10;
+  const DATA = Array(REPEAT_COUNT).fill(MOCK_COLLEGES).flat();
   const cardWidth = screenWidth * 0.7;
-  const spacing = 12;
-  const itemWidth = cardWidth + spacing;
-
+  const itemWidth = cardWidth + CARD_MARGIN * 2;
   const middleIndex = Math.floor(DATA.length / 2);
   const middleOffset = middleIndex * itemWidth;
-
-  const scrollX = useSharedValue(0);
-  const autoScroll = useSharedValue(middleOffset);
-  const isUserInteracting = useSharedValue(false);
-
-  const onScroll = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollX.value = event.contentOffset.x;
-    },
-    onBeginDrag: () => {
-      isUserInteracting.value = true;
-    },
-    onEndDrag: () => {
-      isUserInteracting.value = false;
-    },
-    onMomentumEnd: () => {
-      isUserInteracting.value = false;
-    },
-  });
-
-  useDerivedValue(() => {
-    if (!isUserInteracting.value) {
-      autoScroll.value += 0.2 * (screenWidth / 390);
-
-      scrollTo(flatListRef, autoScroll.value, 0, false);
-
-      if (autoScroll.value >= middleOffset + MOCK_COLLEGES.length * itemWidth) {
-        autoScroll.value = middleOffset;
-        scrollTo(flatListRef, autoScroll.value, 0, false);
-      }
-    }
-  });
+  const oneLoopWidth = MOCK_COLLEGES.length * itemWidth;
 
   useEffect(() => {
-    setTimeout(() => {
-      scrollTo(flatListRef, middleOffset, 0, false);
-    }, 100);
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = middleOffset;
+      setScrollLeft(middleOffset);
+    }
   }, []);
 
+  useEffect(() => {
+    if (isInteracting) return;
+    const step = 0.8 * (screenWidth / 390);
+    const id = setInterval(() => {
+      if (scrollRef.current) {
+        const next = scrollRef.current.scrollLeft + step;
+        scrollRef.current.scrollLeft = next;
+        if (next >= middleOffset + oneLoopWidth) {
+          scrollRef.current.scrollLeft = middleOffset;
+        }
+      }
+    }, 20);
+    return () => clearInterval(id);
+  }, [isInteracting, screenWidth, middleOffset, oneLoopWidth]);
+
+  const handleScroll = useCallback(() => {
+    if (scrollRef.current) {
+      setScrollLeft(scrollRef.current.scrollLeft);
+    }
+  }, []);
+
+  const handleInteractionStart = (e: React.TouchEvent | React.MouseEvent) => {
+    e.stopPropagation();
+    if (pauseRef.current) clearTimeout(pauseRef.current);
+    setIsInteracting(true);
+  };
+
+  const handleInteractionEnd = (e: React.TouchEvent | React.MouseEvent) => {
+    e.stopPropagation();
+    pauseRef.current = setTimeout(() => setIsInteracting(false), 3000);
+  };
+
   return (
-    <View style={[styles.container, { height: cardWidth * 0.85 + 40 }]}>
-      <AnimatedFlatList
-        ref={flatListRef}
-        data={DATA}
-        keyExtractor={(_, index) => index.toString()}
-        renderItem={({ item, index }) => (
-          <Card
-            item={item}
-            index={index}
-            scrollX={scrollX}
-            cardWidth={cardWidth}
-            itemWidth={itemWidth}
-            screenWidth={screenWidth}
-          />
-        )}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: (screenWidth - cardWidth) / 2,
+    <div style={{ width: '100%', height: cardWidth * 0.85 + 40, position: 'relative' }}>
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        onMouseDown={handleInteractionStart}
+        onMouseUp={handleInteractionEnd}
+        onMouseLeave={handleInteractionEnd}
+        onTouchStart={handleInteractionStart}
+        onTouchEnd={handleInteractionEnd}
+        style={{
+          display: 'flex',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
         }}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        decelerationRate="fast"
-        snapToInterval={itemWidth}
-      />
-    </View>
+      >
+        <style>{`
+          div::-webkit-scrollbar { display: none; }
+        `}</style>
+        {DATA.map((item, index) => (
+          <div key={index}>
+            <Card
+              item={item}
+              index={index}
+              scrollLeft={scrollLeft}
+              cardWidth={cardWidth}
+              containerWidth={screenWidth}
+              onViewCollege={onViewCollege}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-  },
-  card: {
-    borderRadius: 25,
-    overflow: 'hidden',
-    backgroundColor: '#010080',
-  },
-  image: {
-    width: '100%',
-    height: 100,
-  },
-  content: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFD700',
-  },
-  desc: {
-    fontSize: 13,
-    color: '#fff',
-    textAlign: 'center',
-    marginVertical: 8,
-  },
-  button: {
-    backgroundColor: '#FFD700',
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    height: 36,
-    justifyContent: 'center',
-  },
-  buttonText: {
-    fontWeight: 'bold',
-    color: '#000',
-  },
-});

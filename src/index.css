@@ -1,0 +1,116 @@
+@import "tw-animate-css";
+@import "@fontsource-variable/geist";
+
+@import "tailwindcss";
+
+@theme inline {
+  --color-border: oklch(0.92 0.005 265);
+  --color-input: oklch(0.9 0 0);
+  --color-ring: #010080;
+  --color-background: oklch(0.97 0 0);
+  --color-foreground: oklch(0.15 0 0);
+  --color-primary: #010080;
+  --color-primary-foreground: #fff;
+  --color-secondary: oklch(0.93 0.01 265);
+  --color-secondary-foreground: #010080;
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-muted: oklch(0.95 0 0);
+  --color-muted-foreground: oklch(0.55 0 0);
+  --color-accent: #ffd700;
+  --color-accent-foreground: #010080;
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.15 0 0);
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.15 0 0);
+  --color-gold: #ffd700;
+  --color-gold-light: #ffde59;
+  --color-bg-gray: #f5f5f5;
+  --color-skeleton: #e8e8e8;
+  --font-sans: "Geist Variable", system-ui, -apple-system, sans-serif;
+  --radius: 1rem;
+
+  --shadow-card: 0 1px 3px rgba(1, 0, 128, 0.06), 0 1px 2px rgba(1, 0, 128, 0.04);
+  --shadow-card-hover: 0 10px 25px rgba(1, 0, 128, 0.08), 0 4px 10px rgba(1, 0, 128, 0.04);
+  --shadow-header: 0 4px 20px rgba(1, 0, 128, 0.12);
+  --shadow-glow-gold: 0 0 20px rgba(255, 215, 0, 0.15);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground m-0 p-0 font-sans antialiased;
+  }
+}
+
+@utility glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+@utility glass-dark {
+  background: rgba(1, 0, 128, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+@utility gold-gradient {
+  background: linear-gradient(135deg, #ffd700, #ffde59);
+}
+
+@utility text-gradient {
+  background: linear-gradient(135deg, #010080, #3333cc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+@utility animate-slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+@utility animate-scale-in {
+  animation: scale-in 0.35s ease-out;
+}
+
+@utility animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@utility bg-radial-gradient {
+  background-image: radial-gradient(ellipse at 50% 0%, rgba(255, 215, 0, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(1, 0, 128, 0.03) 0%, transparent 50%);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+html {
+  scroll-behavior: smooth;
+}

@@ -1,61 +1,32 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
 import Skeleton from './Skeleton';
 
 const NUM_COURSES = 4;
 
 export default function FaculdadeDetailSkeleton() {
   return (
-    <View style={_styles.container}>
+    <div className="flex-1 bg-[#F5F5F5] px-[25px] pt-[10px]">
       <Skeleton width="100%" height={180} borderRadius={25} />
 
-      <View style={_styles.headerBody}>
+      <div className="mt-5 mb-5">
         <Skeleton width="80%" height={24} />
         <Skeleton width="100%" height={14} style={{ marginTop: 8 }} />
         <Skeleton width="60%" height={14} style={{ marginTop: 4 }} />
-      </View>
+      </div>
 
       <Skeleton width={180} height={18} style={{ marginTop: 16 }} />
 
-      <View style={_styles.courses}>
+      <div className="pb-[120px]">
         {Array.from({ length: NUM_COURSES }).map((_, i) => (
-          <View key={i} style={_styles.courseCard}>
-            <View style={_styles.courseBody}>
+          <div key={i} className="flex items-center bg-[#E0E0E0] rounded-[16px] p-4 mb-3">
+            <div className="flex-1 mr-[10px]">
               <Skeleton width="70%" height={16} />
               <Skeleton width="90%" height={13} style={{ marginTop: 4 }} />
-            </View>
+            </div>
             <Skeleton width={22} height={22} borderRadius={11} />
-          </View>
+          </div>
         ))}
-      </View>
-    </View>
+      </div>
+    </div>
   );
 }
-
-const _styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 25,
-    paddingTop: 10,
-  },
-  headerBody: {
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  courses: {
-    paddingBottom: 120,
-  },
-  courseCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E0E0E0',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-  },
-  courseBody: {
-    flex: 1,
-    marginRight: 10,
-  },
-});

@@ -1,23 +1,27 @@
 import Background from '@/components/layout/background';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { IoSearch, IoChevronForward } from 'react-icons/io5';
+import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
-import {
-  Dimensions,
-  FlatList,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { motion } from 'framer-motion';
 import { Course } from '@/types';
 import { getAllCourses } from '@/services/courseService';
 import CursosSkeleton from '@/components/skeletons/CursosSkeleton';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import PageTransition from '@/components/layout/PageTransition';
 
-const { width } = Dimensions.get('window');
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+};
 
 export default function CursosScreen() {
+  const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [filtered, setFiltered] = useState<Course[]>([]);
   const [search, setSearch] = useState('');
@@ -46,112 +50,64 @@ export default function CursosScreen() {
     }
   }, [search, courses]);
 
-  const renderCard = ({ item }: { item: Course }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => router.push(`/busca/${item.id}/curso` as any)}
-    >
-      <View style={styles.cardBody}>
-        <Text style={styles.cardName}>{item.name}</Text>
-        <Text style={styles.cardDesc} numberOfLines={2}>
-          {item.description}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={24} color="#010080" />
-    </TouchableOpacity>
-  );
-
   return (
-    <Background title="FAFYL" showBackButton onBackPress={() => router.push('/busca')}>
-      <View style={styles.container}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color="#666" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar curso..."
-            value={search}
-            onChangeText={setSearch}
-          />
-        </View>
+    <Background title="Cursos" showBackButton onBackPress={() => navigate('/busca')}>
+      <PageTransition>
+        <div className="flex-1 p-4">
+          <motion.div
+            className="relative mb-4"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <IoSearch size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-10 rounded-2xl"
+              placeholder="Buscar curso..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </motion.div>
 
-        {loading ? (
-          <CursosSkeleton />
-        ) : filtered.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhum curso encontrado</Text>
-        ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderCard}
-            contentContainerStyle={styles.list}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
+          {loading ? (
+            <CursosSkeleton />
+          ) : filtered.length === 0 ? (
+            <motion.p
+              className="text-center text-sm text-muted-foreground mt-16"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              Nenhum curso encontrado
+            </motion.p>
+          ) : (
+            <motion.div
+              className="space-y-3 pb-24"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {filtered.map((item) => (
+                <motion.div key={item.id} variants={itemVariants}>
+                  <Card
+                    className="p-4 cursor-pointer"
+                    onClick={() => navigate(`/busca/${item.id}/curso`)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-semibold text-primary truncate">{item.name}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+                      </div>
+                      <div className="shrink-0 group-hover:translate-x-1 transition-transform">
+                        <IoChevronForward size={20} className="text-primary shrink-0" />
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </div>
+      </PageTransition>
     </Background>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    width: width,
-    marginTop: 40,
-    paddingHorizontal: 25,
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#DDD',
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    height: 50,
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
-  },
-  loader: { marginTop: 60 },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: '#666',
-    marginTop: 60,
-  },
-  list: {
-    paddingBottom: 120,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  cardBody: {
-    flex: 1,
-    marginRight: 12,
-  },
-  cardName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#010080',
-    marginBottom: 4,
-  },
-  cardDesc: {
-    fontSize: 13,
-    color: '#666',
-  },
-});

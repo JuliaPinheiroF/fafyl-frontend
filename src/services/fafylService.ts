@@ -1,9 +1,11 @@
+import { USE_MOCKS } from '@/config/env';
 import { Fafyl, College, CourseImp } from '@/types';
 import { request } from './api';
 import { getAllCourses } from './courseService';
 import { getAllColleges, getCollegeCourses } from './collegeService';
 
 export async function getRecommendations(discProfile: Record<string, number>): Promise<Fafyl[]> {
+  if (USE_MOCKS) return computeMockRecommendations(discProfile);
   try {
     const response = await fetch(`${process.env.EXPO_PUBLIC_ENV === 'development' ? 'http://localhost:8080' : 'https://recommend-1-0.onrender.com'}/fafyl`, {
       method: 'GET',
@@ -40,20 +42,16 @@ async function computeMockRecommendations(discProfile: Record<string, number>): 
 }
 
 export async function getCollegesWithCourse(courseId: number): Promise<{ college: College; courseImp: CourseImp }[]> {
-  try {
-    const colleges = await getAllColleges();
-    const results: { college: College; courseImp: CourseImp }[] = [];
+  const colleges = await getAllColleges();
+  const results: { college: College; courseImp: CourseImp }[] = [];
 
-    for (const college of colleges) {
-      const imps = await getCollegeCourses(college.id);
-      const matchingImp = imps.find((imp) => imp.course.id === courseId);
-      if (matchingImp) {
-        results.push({ college, courseImp: matchingImp });
-      }
+  for (const college of colleges) {
+    const imps = await getCollegeCourses(college.id);
+    const matchingImp = imps.find((imp) => imp.course.id === courseId);
+    if (matchingImp) {
+      results.push({ college, courseImp: matchingImp });
     }
-
-    return results;
-  } catch {
-    return [];
   }
+
+  return results;
 }

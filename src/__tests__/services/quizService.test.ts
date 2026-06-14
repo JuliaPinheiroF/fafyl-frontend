@@ -1,12 +1,17 @@
+jest.mock('@/config/env', () => ({
+  API_BASE: 'http://localhost:8080',
+  IS_DEV: false,
+  USE_MOCKS: false,
+}));
+
 import { getQuestions, computeDiscProfile, MOCK_QUESTIONS } from '@/services/quizService';
 import { Question } from '@/types';
 
-jest.mock('@/api', () => ({
+jest.mock('@/services/api', () => ({
   request: jest.fn(),
 }));
 
-import * as api from '@/api';
-
+import * as api from '@/services/api';
 const mockRequest = api.request as jest.MockedFunction<typeof api.request>;
 
 describe('quizService', () => {

@@ -1,26 +1,31 @@
 import Background from '@/components/layout/background';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { IoSearch, IoFilter } from 'react-icons/io5';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
-import {
-  Dimensions,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { motion } from 'framer-motion';
 import { College } from '@/types';
 import { getAllColleges, getCollegeCourses } from '@/services/collegeService';
 import FaculdadesSkeleton from '@/components/skeletons/FaculdadesSkeleton';
 import { resolveImageUrl } from '@/utils/imageResolver';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import PageTransition from '@/components/layout/PageTransition';
 
-const { width } = Dimensions.get('window');
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
 
 export default function FaculdadesScreen() {
-  const { courseId } = useLocalSearchParams<{ courseId?: string }>();
+  const [searchParams] = useSearchParams();
+  const courseId = searchParams.get('courseId');
+  const navigate = useNavigate();
   const [colleges, setColleges] = useState<College[]>([]);
   const [filtered, setFiltered] = useState<College[]>([]);
   const [search, setSearch] = useState('');
@@ -29,7 +34,6 @@ export default function FaculdadesScreen() {
   useEffect(() => {
     getAllColleges().then(async (data) => {
       let filteredColleges = data;
-
       if (courseId) {
         const id = parseInt(courseId, 10);
         const withCourse: College[] = [];
@@ -41,7 +45,6 @@ export default function FaculdadesScreen() {
         }
         filteredColleges = withCourse;
       }
-
       setColleges(filteredColleges);
       setFiltered(filteredColleges);
       setLoading(false);
@@ -63,169 +66,96 @@ export default function FaculdadesScreen() {
     }
   }, [search, colleges]);
 
-  const renderCard = ({ item }: { item: College }) => {
-    const imageUrl = resolveImageUrl(item.image);
-    return (
-      <View style={styles.card}>
-        {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.cardImage} /> : null}
-        <View style={styles.cardBody}>
-          <Text style={styles.cardName}>{item.name}</Text>
-          <Text style={styles.cardDesc} numberOfLines={3}>
-            {item.description}
-          </Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => {
-              const params: any = { id: item.id.toString() };
-              if (courseId) {
-                params.highlightCourseId = courseId;
-              }
-              router.push({ pathname: `/busca/${item.id}/faculdade`, params } as any);
-            }}
-          >
-            <Text style={styles.buttonText}>Lista de cursos</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
+  const renderCard = (item: College) => (
+    <motion.div key={item.id} variants={itemVariants}>
+      <Card className="overflow-hidden border-0">
+        {resolveImageUrl(item.image) && (
+          <div className="h-40 overflow-hidden">
+            <img
+              src={resolveImageUrl(item.image)}
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+              alt={item.name}
+            />
+          </div>
+        )}
+        <CardContent className="p-5 bg-primary">
+          <h3 className="text-lg font-bold text-accent mb-2">{item.name}</h3>
+          <p className="text-sm text-primary-foreground/80 mb-4 line-clamp-3">{item.description}</p>
+            <Button
+              variant="accent" size="lg" className="w-full"
+              onClick={() => {
+                let url = `/busca/${item.id}/faculdade`;
+                if (courseId) url += `?highlightCourseId=${courseId}`;
+                navigate(url);
+              }}
+            >
+              Lista de cursos
+            </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
 
   return (
-    <Background title="FAFYL" showBackButton onBackPress={() => router.push('/busca' as any)}>
-      <View style={styles.container}>
-        {courseId && (
-          <View style={styles.filterBanner}>
-            <Ionicons name="filter" size={16} color="#010080" />
-            <Text style={styles.filterText}>Mostrando faculdades com o curso selecionado</Text>
-            <TouchableOpacity onPress={() => { setFiltered(colleges); setSearch(''); }} style={styles.clearFilter}>
-              <Text style={styles.clearFilterText}>Limpar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+    <Background title="Faculdades" showBackButton onBackPress={() => navigate('/busca')}>
+      <PageTransition>
+        <div className="flex-1 p-4">
+          {courseId && (
+            <motion.div
+              className="flex items-center bg-primary/5 rounded-xl p-3 mb-3 gap-2"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+            >
+              <IoFilter size={16} className="text-primary shrink-0" />
+              <span className="text-xs text-primary font-semibold flex-1">
+                Mostrando faculdades com o curso selecionado
+              </span>
+              <button
+                onClick={() => { setFiltered(colleges); setSearch(''); }}
+                className="text-xs text-primary font-bold underline cursor-pointer bg-transparent border-none shrink-0"
+              >
+                Limpar
+              </button>
+            </motion.div>
+          )}
 
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color="#666" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar faculdade..."
-            value={search}
-            onChangeText={setSearch}
-          />
-        </View>
+          <motion.div
+            className="relative mb-4"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <IoSearch size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-10 rounded-2xl"
+              placeholder="Buscar faculdade..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </motion.div>
 
-        {loading ? (
-          <FaculdadesSkeleton />
-        ) : filtered.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhuma faculdade encontrada</Text>
-        ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderCard}
-            contentContainerStyle={styles.list}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
+          {loading ? (
+            <FaculdadesSkeleton />
+          ) : filtered.length === 0 ? (
+            <motion.p
+              className="text-center text-sm text-muted-foreground mt-16"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              Nenhuma faculdade encontrada
+            </motion.p>
+          ) : (
+            <motion.div
+              className="space-y-4 pb-24"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {filtered.map((item) => renderCard(item))}
+            </motion.div>
+          )}
+        </div>
+      </PageTransition>
     </Background>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    width: width,
-    marginTop: 40,
-    paddingHorizontal: 25,
-  },
-  filterBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8E8FF',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 16,
-    marginBottom: 12,
-    gap: 8,
-  },
-  filterText: {
-    fontSize: 13,
-    color: '#010080',
-    fontWeight: '600',
-    flex: 1,
-  },
-  clearFilter: {
-    paddingHorizontal: 8,
-  },
-  clearFilterText: {
-    fontSize: 13,
-    color: '#010080',
-    fontWeight: 'bold',
-    textDecorationLine: 'underline',
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#DDD',
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    height: 50,
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
-  },
-  loader: { marginTop: 60 },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: '#666',
-    marginTop: 60,
-  },
-  list: {
-    paddingBottom: 120,
-  },
-  card: {
-    backgroundColor: '#010080',
-    borderRadius: 25,
-    overflow: 'hidden',
-    marginBottom: 20,
-  },
-  cardImage: {
-    width: '100%',
-    height: 160,
-  },
-  cardBody: {
-    padding: 20,
-  },
-  cardName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginBottom: 8,
-  },
-  cardDesc: {
-    fontSize: 14,
-    color: '#fff',
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  button: {
-    backgroundColor: '#FFD700',
-    borderRadius: 25,
-    height: 45,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-});

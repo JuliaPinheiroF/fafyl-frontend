@@ -1,123 +1,75 @@
-import Background from '@/components/layout/background';
-import { router } from 'expo-router';
 import React from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import Background from '@/components/layout/background';
+import PageTransition from '@/components/layout/PageTransition';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
 
 export default function LoginScreen() {
+  const navigate = useNavigate();
+
   return (
-    <Background title="FAFYL">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}>
-
-        {/* Formulário Branco */}
-        <View style={styles.content}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
-            <Text style={styles.title}>Login</Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>E-mail:</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Senha:</Text>
-              <TextInput style={styles.input} secureTextEntry />
-            </View>
-
-            <TouchableOpacity
-              style={styles.linkButton}
-              onPress={() => router.replace('/home' as any)}>
-              <Text style={styles.linkText}>
-                Não tem uma conta? <Text style={styles.linkBold}>Cadastre-se</Text>
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Entrar</Text>
-            </TouchableOpacity>
-
-          </ScrollView>
-        </View>
-
-      </KeyboardAvoidingView>
+    <Background>
+      <PageTransition>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <motion.div
+            className="w-full max-w-md"
+            variants={stagger}
+            initial="hidden"
+            animate="visible"
+          >
+            <Card>
+              <CardHeader className="text-center">
+                <motion.h1
+                  className="text-3xl font-bold text-primary"
+                  variants={fadeUp}
+                >
+                  FAFYL
+                </motion.h1>
+                <motion.div variants={fadeUp}>
+                  <CardDescription>Entre na sua conta</CardDescription>
+                </motion.div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <motion.div className="space-y-2" variants={fadeUp}>
+                  <label className="text-sm font-medium text-foreground">E-mail</label>
+                  <Input type="email" placeholder="seu@email.com" />
+                </motion.div>
+                <motion.div className="space-y-2" variants={fadeUp}>
+                  <label className="text-sm font-medium text-foreground">Senha</label>
+                  <Input type="password" placeholder="Sua senha" />
+                </motion.div>
+                <motion.div variants={fadeUp}>
+                  <Button variant="accent" size="lg" className="w-full" onClick={() => navigate('/home', { replace: true })}>
+                    Entrar
+                  </Button>
+                </motion.div>
+                <motion.div className="text-center" variants={fadeUp}>
+                  <button
+                    onClick={() => navigate('/')}
+                    className="text-sm text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-none"
+                  >
+                    Não tem uma conta?{' '}
+                    <span className="font-semibold text-primary">Cadastre-se</span>
+                  </button>
+                </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </PageTransition>
     </Background>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    paddingHorizontal: 30,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 30,
-    color: '#333',
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 8,
-    color: '#333',
-    marginLeft: 10,
-  },
-  input: {
-    backgroundColor: '#DDD',
-    height: 50,
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    fontSize: 16,
-  },
-  linkButton: {
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  linkText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  linkBold: {
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  button: {
-    backgroundColor: '#FFD700',
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  buttonText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-});

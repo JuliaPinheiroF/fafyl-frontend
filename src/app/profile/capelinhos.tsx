@@ -1,15 +1,11 @@
 import Background from '@/components/layout/background';
-import { useRouter } from 'expo-router';
+import { IoReload } from 'react-icons/io5';
+import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { motion } from 'framer-motion';
 import { updateCapelinho, getUserCapelinho, CAPELINHO_IMAGES } from '@/services/capelinhoService';
+import { Button } from '@/components/ui/button';
+import PageTransition from '@/components/layout/PageTransition';
 
 const AVATARES = [
   { id: 1, img: CAPELINHO_IMAGES[1] },
@@ -18,8 +14,18 @@ const AVATARES = [
   { id: 4, img: CAPELINHO_IMAGES[4] },
 ];
 
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
+
 export default function SelecionarAvatar() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [selecionado, setSelecionado] = useState(1);
   const [saving, setSaving] = useState(false);
 
@@ -37,117 +43,65 @@ export default function SelecionarAvatar() {
       console.error('Failed to update capelinho:', e);
     } finally {
       setSaving(false);
-      router.back();
+      navigate(-1);
     }
   };
 
   return (
-    <Background
-      title=""
-      showBackButton={true}
-      onBackPress={() => router.back()}
-    >
-      <View style={styles.content}>
-        <View style={styles.mainAvatarContainer}>
-          <View style={styles.circle}>
-            <Image
-              source={AVATARES.find((a) => a.id === selecionado)?.img}
-              style={styles.mainAvatarImage}
-            />
-          </View>
-        </View>
+    <Background title="Escolher Avatar" showBackButton>
+      <PageTransition>
+        <motion.div
+          className="flex-1 flex flex-col items-center pt-6"
+          variants={stagger}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div className="mb-6" variants={fadeUp}>
+            <div className="w-36 h-36 rounded-full bg-card flex items-center justify-center overflow-hidden border-4 border-primary animate-scale-in">
+              <img
+                src={AVATARES.find((a) => a.id === selecionado)?.img}
+                className="w-28 h-28 object-contain transition-all duration-200"
+                alt=""
+                key={selecionado}
+              />
+            </div>
+          </motion.div>
 
-        <View style={styles.whiteCard}>
-          <View style={styles.grid}>
-            {AVATARES.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                onPress={() => setSelecionado(item.id)}
-                style={[
-                  styles.avatarOption,
-                  selecionado === item.id && styles.selectedBorder,
-                ]}
+          <motion.div className="flex-1 w-full rounded-t-3xl bg-card p-6" variants={fadeUp}>
+            <motion.div
+              className="flex flex-wrap justify-center gap-4 mb-8"
+              variants={stagger}
+              initial="hidden"
+              animate="visible"
+            >
+              {AVATARES.map((item) => (
+                <motion.button
+                  key={item.id}
+                  onClick={() => setSelecionado(item.id)}
+                  className={`w-32 h-32 rounded-2xl flex items-center justify-center border-4 cursor-pointer bg-muted/50 transition-all hover:scale-105 active:scale-95 ${
+                    selecionado === item.id ? 'border-accent shadow-lg shadow-accent/20' : 'border-transparent'
+                  }`}
+                  variants={fadeUp}
+                >
+                  <img src={item.img} className="w-24 h-24 object-contain" alt="" />
+                </motion.button>
+              ))}
+            </motion.div>
+
+              <Button
+                variant="accent" size="lg" className={`w-full max-w-sm mx-auto ${saving ? 'opacity-60' : ''}`}
+                onClick={handleSave}
+                disabled={saving}
               >
-                <Image source={item.img} style={styles.optionImage} />
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <TouchableOpacity
-            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-            onPress={handleSave}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator color="#010080" />
-            ) : (
-              <Text style={styles.saveButtonText}>Salvar Alterações</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+                {saving ? (
+                  <IoReload className="animate-spin" size={20} />
+                ) : (
+                  'Salvar Alterações'
+                )}
+              </Button>
+          </motion.div>
+        </motion.div>
+      </PageTransition>
     </Background>
   );
 }
-
-const styles = StyleSheet.create({
-  content: { flex: 1, alignItems: 'center' },
-  mainAvatarContainer: {
-    marginVertical: 20,
-    alignItems: 'center',
-  },
-  circle: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  mainAvatarImage: { width: 120, height: 120, resizeMode: 'contain' },
-  whiteCard: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    width: '100%',
-    borderTopLeftRadius: 50,
-    borderTopRightRadius: 50,
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    alignItems: 'center',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 15,
-    marginBottom: 40,
-  },
-  avatarOption: {
-    width: 140,
-    height: 140,
-    backgroundColor: '#D9D9D9',
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'transparent',
-  },
-  selectedBorder: {
-    borderColor: '#40E0D0',
-  },
-  optionImage: { width: 100, height: 100, resizeMode: 'contain' },
-  saveButton: {
-    backgroundColor: '#FFDE59',
-    width: '90%',
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 3,
-  },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: { fontWeight: 'bold', fontSize: 18, color: '#000' },
-});

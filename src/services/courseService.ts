@@ -1,3 +1,4 @@
+import { USE_MOCKS } from '@/config/env';
 import { Course, CourseImp } from '@/types';
 import { request } from './api';
 
@@ -186,6 +187,7 @@ const MOCK_COURSE_IMPS: CourseImp[] = [
 ];
 
 export async function getAllCourses(): Promise<Course[]> {
+  if (USE_MOCKS) return MOCK_COURSES;
   try {
     const response: any = await request('/model/course');
     return response.content || response;
@@ -195,6 +197,7 @@ export async function getAllCourses(): Promise<Course[]> {
 }
 
 export async function getAllCourseImps(): Promise<CourseImp[]> {
+  if (USE_MOCKS) return MOCK_COURSE_IMPS;
   try {
     const response: any = await request('/course');
     return response.content || response;

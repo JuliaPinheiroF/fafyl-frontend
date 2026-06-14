@@ -69,3 +69,11 @@ export interface AlternativeDTO {
   dimension: string;
   weight: number;
 }
+
+export interface UserDTO {
+  id: number;
+  name: string;
+  email: string;
+  locale: Coordinates;
+  capelinho?: number;
+}

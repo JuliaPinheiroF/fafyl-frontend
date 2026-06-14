@@ -1,12 +1,4 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
+import React, { useRef, useEffect } from 'react';
 
 type WidthValue = number | '100%' | 'auto' | string;
 
@@ -14,7 +6,7 @@ interface SkeletonProps {
   width?: WidthValue;
   height?: number;
   borderRadius?: number;
-  style?: ViewStyle;
+  style?: React.CSSProperties;
   children?: React.ReactNode;
 }
 
@@ -25,66 +17,59 @@ export default function Skeleton({
   style,
   children,
 }: SkeletonProps) {
-  const shimmer = useSharedValue(-1);
+  const shimmerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    shimmer.value = withRepeat(
-      withTiming(1, { duration: 1200, easing: Easing.linear }),
-      -1,
-      false
-    );
+    if (shimmerRef.current) {
+      shimmerRef.current.style.animation = 'shimmer 1.2s linear infinite';
+    }
   }, []);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shimmer.value * 300 - 150 }],
-  }));
-
   const widthStyle = typeof width === 'string' && width.endsWith('%')
-    ? ({ width: width } as ViewStyle)
+    ? { width: width as string }
     : { width: width as number };
 
   return (
-    <View
-      style={[
-        styles.base,
-        { height, borderRadius, overflow: 'hidden' },
-        widthStyle,
-        style,
-      ]}
+    <div
+      style={{
+        backgroundColor: '#E0E0E0',
+        position: 'relative',
+        overflow: 'hidden',
+        height,
+        borderRadius,
+        ...widthStyle,
+        ...style,
+      } as React.CSSProperties}
     >
-      <Animated.View style={[styles.shimmer, animatedStyle]} />
+      <div
+        ref={shimmerRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: 150,
+          backgroundColor: 'transparent',
+          boxShadow: '0 0 10px 8px rgba(255,255,255,0.8)',
+        }}
+      />
+      <style>{`@keyframes shimmer { from { transform: translateX(-150px); } to { transform: translateX(300px); } }`}</style>
       {children}
-    </View>
+    </div>
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    backgroundColor: '#E0E0E0',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  shimmer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    width: 150,
-    backgroundColor: 'transparent',
-    shadowColor: '#FFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-  },
-});
-
 export function SkeletonCircle({ size = 50 }: { size?: number }) {
   return (
-    <View
-      style={[
-        styles.base,
-        { width: size, height: size, borderRadius: size / 2 },
-      ]}
+    <div
+      style={{
+        backgroundColor: '#E0E0E0',
+        position: 'relative',
+        overflow: 'hidden',
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+      }}
     />
   );
 }

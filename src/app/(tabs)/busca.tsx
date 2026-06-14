@@ -1,81 +1,52 @@
-import Background from '@/components/layout/background';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { IoSchool, IoBook } from 'react-icons/io5';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import React from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const { width } = Dimensions.get('window');
+import Background from '@/components/layout/background';
+import PageTransition from '@/components/layout/PageTransition';
+import SwipeablePage from '@/components/layout/SwipeablePage';
 
 export default function BuscaScreen() {
+  const navigate = useNavigate();
+
   return (
-    <Background title="FAFYL" showUserIcon={true}
-    onUserIconPress={() => router.push('/profile' as any)}>
-      <View style={styles.container}>
-        <Text style={styles.subtitle}>O que você procura?</Text>
+    <Background title="Buscar">
+      <PageTransition>
+        <SwipeablePage>
+          <div className="flex-1 p-6 flex flex-col items-center pt-12">
+            <motion.h2
+              className="text-xl font-semibold text-foreground mb-8"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              O que você procura?
+            </motion.h2>
 
-        <View style={styles.cardsRow}>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => router.push('/busca/faculdades' as any)}
-          >
-            <Ionicons name="school" size={48} color="#FFD700" />
-            <Text style={styles.cardTitle}>Faculdades</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => router.push('/busca/cursos' as any)}
-          >
-            <Ionicons name="book" size={48} color="#FFD700" />
-            <Text style={styles.cardTitle}>Cursos</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            <motion.div
+              className="flex justify-center w-full gap-4 max-w-md"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <button
+                className="flex-1 bg-primary rounded-2xl py-10 flex flex-col items-center justify-center cursor-pointer border-none shadow-[var(--shadow-card)] hover:bg-primary/90 transition-all hover:scale-[1.04] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.96]"
+                onClick={() => navigate('/busca/faculdades')}
+              >
+                <IoSchool size={40} color="#FFD700" />
+                <span className="text-sm font-bold text-accent mt-3">Faculdades</span>
+              </button>
+              <button
+                className="flex-1 bg-primary rounded-2xl py-10 flex flex-col items-center justify-center cursor-pointer border-none shadow-[var(--shadow-card)] hover:bg-primary/90 transition-all hover:scale-[1.04] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.96]"
+                onClick={() => navigate('/busca/cursos')}
+              >
+                <IoBook size={40} color="#FFD700" />
+                <span className="text-sm font-bold text-accent mt-3">Cursos</span>
+              </button>
+            </motion.div>
+          </div>
+        </SwipeablePage>
+      </PageTransition>
     </Background>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    width: width,
-    marginTop: 40,
-    paddingHorizontal: 25,
-    paddingTop: 40,
-    alignItems: 'center',
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 40,
-  },
-  cardsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    gap: 16,
-  },
-  card: {
-    flex: 1,
-    backgroundColor: '#010080',
-    borderRadius: 25,
-    paddingVertical: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginTop: 12,
-  },
-});

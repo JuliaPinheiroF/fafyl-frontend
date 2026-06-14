@@ -1,3 +1,4 @@
+import { USE_MOCKS } from '@/config/env';
 import { useState, useCallback } from 'react';
 
 export type LocationError = 'no_permission' | 'no_internet' | 'gps_disabled' | 'location_unavailable' | 'route_failed' | null;
@@ -46,7 +47,7 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
   const [error, setError] = useState<LocationError>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
-  const getCurrentLocationWeb = useCallback(async (): Promise<void> => {
+  const getCurrentLocationWeb = useCallback(async (): Promise<{ lat: number; lon: number }> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         setError('location_unavailable');
@@ -56,11 +57,12 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setCurrentLocation({
+          const loc = {
             lat: position.coords.latitude,
             lon: position.coords.longitude,
-          });
-          resolve();
+          };
+          setCurrentLocation(loc);
+          resolve(loc);
         },
         (err) => {
           if (err.code === 1) {
@@ -101,6 +103,11 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
   };
 
   const getCurrentLocation = useCallback(async () => {
+    if (USE_MOCKS) {
+      setCurrentLocation({ lat: -23.5505, lon: -46.6333 });
+      return;
+    }
+
     const isWeb = typeof window !== 'undefined' && navigator?.geolocation != null;
 
     if (isWeb) {
@@ -116,53 +123,20 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
       return;
     }
 
-    const ExpoLocation = await import('expo-location');
-    
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { status } = await ExpoLocation.getForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        const { status: newStatus } = await ExpoLocation.requestForegroundPermissionsAsync();
-        if (newStatus !== 'granted') {
-          setHasPermission(false);
-          setError('no_permission');
-          setLoading(false);
-          return;
-        }
-      }
-      setHasPermission(true);
-
-      const serviceEnabled = await ExpoLocation.hasServicesEnabledAsync();
-      if (!serviceEnabled) {
-        setError('gps_disabled');
-        setLoading(false);
-        return;
-      }
-
-      const location = await ExpoLocation.getCurrentPositionAsync({
-        accuracy: ExpoLocation.Accuracy.High,
-      });
-
-      setCurrentLocation({
-        lat: location.coords.latitude,
-        lon: location.coords.longitude,
-      });
-    } catch (err: any) {
-      const errorCode = err?.code || err?.message;
-      if (errorCode === 'no_internet' || errorCode === 'network unavailable') {
-        setError('no_internet');
-      } else {
-        setError('location_unavailable');
-      }
-    } finally {
-      setLoading(false);
-    }
+    setError('location_unavailable');
+    setLoading(false);
   }, [getCurrentLocationWeb]);
 
   const calculateRouteTo = useCallback(async (destination: { lat: number; lon: number }) => {
+    if (USE_MOCKS) {
+      setRoute({
+        coordinates: [[destination.lon, destination.lat], [-46.6333, -23.5505]],
+        distance: 5000,
+        time: 900,
+      });
+      return;
+    }
+
     const isWeb = typeof window !== 'undefined' && navigator?.geolocation != null;
 
     try {
@@ -171,58 +145,15 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
       setRoute(null);
 
       if (isWeb) {
-        await getCurrentLocationWeb();
-        if (!currentLocation) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-        
-        if (!currentLocation) {
-          setError('location_unavailable');
-          setLoading(false);
-          return;
-        }
-        
-        const result = await calculateRouteWeb(currentLocation, destination);
+        const loc = await getCurrentLocationWeb();
+        const result = await calculateRouteWeb(loc, destination);
         setRoute(result);
         setLoading(false);
         return;
       }
 
-      const ExpoLocation = await import('expo-location');
-
-      const { status } = await ExpoLocation.getForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        const { status: newStatus } = await ExpoLocation.requestForegroundPermissionsAsync();
-        if (newStatus !== 'granted') {
-          setHasPermission(false);
-          setError('no_permission');
-          setLoading(false);
-          return;
-        }
-      }
-      setHasPermission(true);
-
-      const serviceEnabled = await ExpoLocation.hasServicesEnabledAsync();
-      if (!serviceEnabled) {
-        setError('gps_disabled');
-        setLoading(false);
-        return;
-      }
-
-      const position = await ExpoLocation.getCurrentPositionAsync({
-        accuracy: ExpoLocation.Accuracy.High,
-      });
-      
-      const location = {
-        lat: position.coords.latitude,
-        lon: position.coords.longitude,
-      };
-      setCurrentLocation(location);
-
-      const { calculateRoute } = await import('@/services/geoapifyService');
-      const result = await calculateRoute(location, destination, 'drive');
-      setRoute(result);
+      setError('route_failed');
+      setRoute(null);
 
     } catch (err: any) {
       const errorCode = err?.code || err?.message;

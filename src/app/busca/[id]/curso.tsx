@@ -4,23 +4,27 @@ import CursoDetailSkeleton from '@/components/skeletons/CursoDetailSkeleton';
 import { getAllCourses } from '@/services/courseService';
 import { getCollegesWithCourse } from '@/services/fafylService';
 import { Course, College, CourseImp } from '@/types';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { IoChevronUp, IoChevronDown, IoMap } from 'react-icons/io5';
+import { useNavigate, useParams } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
-import {
-  Dimensions,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { motion } from 'framer-motion';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import PageTransition from '@/components/layout/PageTransition';
 
-const { width } = Dimensions.get('window');
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
 
 export default function CursoDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
   const [items, setItems] = useState<{ college: College; courseImp: CourseImp }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,254 +50,150 @@ export default function CursoDetailScreen() {
 
   if (loading) {
     return (
-      <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <CursoDetailSkeleton />
-        </ScrollView>
+      <Background title="FAFYL" showBackButton>
+        <PageTransition>
+          <div className="flex-1"><CursoDetailSkeleton /></div>
+        </PageTransition>
       </Background>
     );
   }
 
   if (!course) {
     return (
-      <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-        <View style={styles.container}>
-          <Text style={styles.emptyText}>Curso não encontrado</Text>
-        </View>
+      <Background title="FAFYL" showBackButton>
+        <PageTransition>
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-muted-foreground">Curso não encontrado</p>
+          </div>
+        </PageTransition>
       </Background>
     );
   }
 
-  const isMobile = Platform.OS !== 'web';
-
   return (
-    <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <Text style={styles.courseName}>{course.name}</Text>
-          <Text style={styles.courseDesc}>{course.description}</Text>
-        </View>
+    <Background title="FAFYL" showBackButton>
+      <PageTransition>
+        <div className="flex-1 overflow-y-auto p-4">
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div className="mb-6" variants={fadeUp}>
+              <h1 className="text-2xl font-bold text-primary mb-1.5">{course.name}</h1>
+              <p className="text-sm text-muted-foreground leading-relaxed">{course.description}</p>
+            </motion.div>
 
-        <Text style={styles.sectionTitle}>Faculdades com {course.name}:</Text>
+            <motion.h2 className="text-base font-semibold text-foreground mb-3" variants={fadeUp}>
+              Faculdades com {course.name}:
+            </motion.h2>
 
-        {items.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhuma faculdade com esse curso</Text>
-        ) : (
-          items.map(({ college, courseImp }) => (
-            <CourseImpCard 
-              key={courseImp.id} 
-              imp={{ ...courseImp, college }}
-              isMobile={isMobile} 
-              onViewMap={handleViewMap} 
-            />
-          ))
+            {items.length === 0 ? (
+              <motion.p className="text-center text-sm text-muted-foreground mt-10" variants={fadeUp}>
+                Nenhuma faculdade com esse curso
+              </motion.p>
+            ) : (
+              <motion.div className="space-y-3 pb-24" variants={fadeUp}>
+                {items.map(({ college, courseImp }, index) => (
+                  <motion.div key={courseImp.id} variants={fadeUp} custom={index}>
+                    <CourseImpCard
+                      imp={{ ...courseImp, college }}
+                      onViewMap={handleViewMap}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </motion.div>
+        </div>
+
+        {selectedImp?.locale && (
+          <MapModal
+            visible={mapVisible}
+            onClose={() => {
+              setMapVisible(false);
+              setSelectedImp(null);
+            }}
+            destination={{
+              lat: selectedImp.locale.lat,
+              lon: selectedImp.locale.lon,
+              name: selectedImp.name,
+              collegeName: selectedImp.college?.name || '',
+            }}
+          />
         )}
-      </ScrollView>
-
-      {isMobile && selectedImp?.locale && (
-        <MapModal
-          visible={mapVisible}
-          onClose={() => {
-            setMapVisible(false);
-            setSelectedImp(null);
-          }}
-          destination={{
-            lat: selectedImp.locale.lat,
-            lon: selectedImp.locale.lon,
-            name: selectedImp.name,
-            collegeName: selectedImp.college?.name || '',
-          }}
-        />
-      )}
+      </PageTransition>
     </Background>
   );
 }
 
 interface CourseImpCardProps {
   imp: CourseImp;
-  isMobile: boolean;
   onViewMap: (imp: CourseImp) => void;
 }
 
-function CourseImpCard({ imp, isMobile, onViewMap }: CourseImpCardProps) {
+function CourseImpCard({ imp, onViewMap }: CourseImpCardProps) {
   const [expanded, setExpanded] = useState(false);
-
   const collegeName = imp.college?.name || 'Faculdade';
 
   return (
-    <TouchableOpacity
-      style={styles.impCard}
-      onPress={() => setExpanded(!expanded)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.impHeader}>
-        <View style={styles.impInfo}>
-          <Text style={styles.impCollege}>{collegeName}</Text>
-          <Text style={styles.impFees}>
-            {imp.fees ? `R$ ${imp.fees.toFixed(2).replace('.', ',')}` : 'Preço não disponível'}
-          </Text>
-        </View>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={22}
-          color="#010080"
-        />
-      </View>
+    <div>
+      <Card className="rounded-2xl overflow-hidden">
+        <button
+          className="w-full text-left p-4 cursor-pointer border-none bg-transparent active:scale-[0.99] transition-transform"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-base font-semibold text-primary mb-0.5 truncate">{collegeName}</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                {imp.fees ? `R$ ${imp.fees.toFixed(2).replace('.', ',')}` : 'Preço não disponível'}
+              </p>
+            </div>
+            <div className="transition-transform duration-200" style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              <IoChevronDown size={20} className="text-primary shrink-0" />
+            </div>
+          </div>
+        </button>
 
-      {expanded && (
-        <View style={styles.impDetails}>
-          <Text style={styles.impDetailsText}>{imp.details || ''}</Text>
+        <div
+          className="overflow-hidden transition-all duration-250 ease-out"
+          style={{
+            height: expanded ? 'auto' : 0,
+            opacity: expanded ? 1 : 0,
+          }}
+        >
+          <CardContent className="pt-0 pb-4 px-4">
+            <div className="pt-3 border-t border-border">
+              <p className="text-sm text-muted-foreground leading-relaxed mb-2.5">{imp.details || ''}</p>
 
-          {imp.locale && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Localização:</Text>
-              <Text style={styles.detailValue}>
-                Lat {imp.locale.lat?.toFixed(4) || '0'} | Lon {imp.locale.lon?.toFixed(4) || '0'}
-              </Text>
-            </View>
-          )}
+              {imp.locale && (
+                <p className="text-xs text-muted-foreground mb-2">
+                  <span className="font-semibold text-foreground">Localização:</span>{' '}
+                  Lat {imp.locale.lat?.toFixed(4) || '0'} | Lon {imp.locale.lon?.toFixed(4) || '0'}
+                </p>
+              )}
 
-          {isMobile && imp.locale && (
-            <TouchableOpacity style={styles.mapButton} onPress={() => onViewMap(imp)}>
-              <Ionicons name="map" size={18} color="#fff" />
-              <Text style={styles.mapButtonText}>Ver no Mapa</Text>
-            </TouchableOpacity>
-          )}
+                {imp.locale && (
+                  <Button
+                    variant="outline" size="lg" className="w-full gap-1.5"
+                    onClick={(e) => { e.stopPropagation(); onViewMap(imp); }}
+                  >
+                    <IoMap size={16} />
+                    Ver no Mapa
+                  </Button>
+                )}
 
-          {imp.note && Object.entries(imp.note).map(([key, value]) => (
-            <View key={key} style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{key}:</Text>
-              <Text style={styles.detailValue}>{String(value)}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-    </TouchableOpacity>
+              {imp.note && Object.entries(imp.note).map(([key, value]) => (
+                <p key={key} className="text-xs text-muted-foreground mt-1">
+                  <span className="font-semibold text-foreground">{key}:</span>{' '}
+                  {String(value)}
+                </p>
+              ))}
+            </div>
+          </CardContent>
+        </div>
+      </Card>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    width: width,
-    marginTop: 40,
-  },
-  scrollContent: {
-    paddingHorizontal: 25,
-    paddingTop: 20,
-    paddingBottom: 120,
-  },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: '#666',
-    marginTop: 40,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  courseName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#010080',
-    marginBottom: 6,
-  },
-  courseDesc: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  impCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  impHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  impInfo: {
-    flex: 1,
-  },
-  impCollege: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#010080',
-    marginBottom: 2,
-  },
-  impFees: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-  },
-  impDetails: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#EEE',
-  },
-  impDetailsText: {
-    fontSize: 13,
-    color: '#555',
-    lineHeight: 20,
-    marginBottom: 10,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  detailLabel: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#333',
-    marginRight: 6,
-  },
-  detailValue: {
-    fontSize: 13,
-    color: '#555',
-    flex: 1,
-  },
-  mapButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#010080',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginTop: 12,
-    gap: 6,
-  },
-  mapButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});

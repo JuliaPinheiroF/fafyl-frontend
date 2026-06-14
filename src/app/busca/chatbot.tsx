@@ -2,28 +2,22 @@ import Background from '@/components/layout/background';
 import ChatSkeleton from '@/components/skeletons/ChatSkeleton';
 import { sendChatMessage } from '@/services/chatbotService';
 import { ChatMessage } from '@/types';
-import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
-import {
-  Dimensions,
-  FlatList,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import PageTransition from '@/components/layout/PageTransition';
 
-const { width } = Dimensions.get('window');
+const messageVariants = {
+  hidden: { opacity: 0, y: 12, scale: 0.97 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.25 } },
+};
 
 export default function ChatbotScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const sendMessage = async () => {
     const trimmed = input.trim();
@@ -61,180 +55,99 @@ export default function ChatbotScreen() {
       setLoading(false);
     }
 
-    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-  };
-
-  const renderMessage = ({ item }: { item: ChatMessage }) => {
-    if (item.role === 'user') {
-      return (
-        <View style={styles.userMessageRow}>
-          <View style={styles.userBubble}>
-            <Text style={styles.userText}>{item.text}</Text>
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.botMessageRow}>
-        <Image source={require('../../../assets/images/curioso.png')} style={styles.botAvatar} />
-        <View style={styles.botBubble}>
-          <Text style={styles.botText}>{item.text}</Text>
-        </View>
-      </View>
-    );
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   return (
-    <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-      <View style={styles.container}>
-        <KeyboardAvoidingView
-          style={styles.chatBody}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        >
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMessage}
-            contentContainerStyle={styles.messagesList}
-            showsVerticalScrollIndicator={false}
-            style={styles.flatList}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-            ListEmptyComponent={<ChatSkeleton />}
-          />
+    <Background title="Capelinho" showBackButton>
+      <PageTransition>
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {messages.length === 0 ? (
+              <ChatSkeleton />
+            ) : (
+              <AnimatePresence initial={false}>
+                {messages.map((msg) =>
+                  msg.role === 'user' ? (
+                    <motion.div
+                      key={msg.id}
+                      className="flex justify-end"
+                      variants={messageVariants}
+                      initial="hidden"
+                      animate="visible"
+                      layout
+                    >
+                      <div className="bg-primary rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[80%]">
+                        <span className="text-primary-foreground text-sm">{msg.text}</span>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key={msg.id}
+                      className="flex items-end gap-2"
+                      variants={messageVariants}
+                      initial="hidden"
+                      animate="visible"
+                      layout
+                    >
+                      <img
+                        src="/images/curioso.png"
+                        className="w-8 h-8 rounded-full object-contain shrink-0"
+                        alt=""
+                      />
+                      <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[75%]">
+                        <span className="text-foreground text-sm">{msg.text}</span>
+                      </div>
+                    </motion.div>
+                  )
+                )}
+              </AnimatePresence>
+            )}
+            {loading && (
+              <motion.div
+                className="flex items-end gap-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <img src="/images/curioso.png" className="w-8 h-8 rounded-full object-contain shrink-0" alt="" />
+                <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-2.5">
+                  <span className="text-foreground text-sm inline-block animate-pulse">
+                    pensando...
+                  </span>
+                </div>
+              </motion.div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
+          <motion.div
+            className="flex items-end gap-2 p-4 border-t border-border"
+            initial={{ y: 20 }}
+            animate={{ y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Input
+              className="flex-1 rounded-2xl bg-background min-h-[44px]"
               value={input}
-              onChangeText={setInput}
+              onChange={(e) => setInput(e.target.value)}
               placeholder="Digite sua mensagem..."
-              placeholderTextColor="#999"
-              onSubmitEditing={sendMessage}
-              multiline
+              onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               maxLength={500}
             />
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                (!input.trim() || loading) && styles.sendButtonDisabled,
-              ]}
-              onPress={sendMessage}
-              disabled={!input.trim() || loading}
-            >
-              <Text style={styles.sendButtonText}>{loading ? '...' : '→'}</Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
+            <div className="active:scale-90 transition-transform">
+              <Button
+                className="w-12 h-12 rounded-full shrink-0 bg-primary hover:bg-primary/90 text-accent text-xl font-bold"
+                onClick={sendMessage}
+                disabled={!input.trim() || loading}
+              >
+                {loading ? (
+                  <span className="inline-block animate-spin">↻</span>
+                ) : '→'}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      </PageTransition>
     </Background>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    width: width,
-    marginTop: 40,
-    overflow: 'hidden',
-  },
-  chatBody: {
-    flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'flex-end',
-  },
-  flatList: {
-    flex: 1,
-  },
-  messagesList: {
-    padding: 16,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  userMessageRow: {
-    alignItems: 'flex-end',
-    marginBottom: 12,
-  },
-  userBubble: {
-    backgroundColor: '#010080',
-    borderRadius: 16,
-    borderBottomRightRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    maxWidth: '80%',
-  },
-  userText: {
-    color: '#fff',
-    fontSize: 15,
-  },
-  botMessageRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginBottom: 12,
-    gap: 8,
-  },
-  botAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  botBubble: {
-    backgroundColor: '#E0E0E0',
-    borderRadius: 16,
-    borderBottomLeftRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    maxWidth: '75%',
-  },
-  botText: {
-    color: '#333',
-    fontSize: 15,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
-    backgroundColor: '#F5F5F5',
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-    fontSize: 15,
-    maxHeight: 120,
-    minHeight: 40,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    textAlignVertical: 'top',
-  },
-  sendButton: {
-    width: 48,
-    minHeight: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#010080',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  sendButtonDisabled: {
-    backgroundColor: '#666',
-  },
-  sendButtonText: {
-    bottom: 4,
-    color: '#FFD700',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-});

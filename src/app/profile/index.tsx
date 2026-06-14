@@ -1,22 +1,26 @@
 import Background from '@/components/layout/background';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { IoTimeOutline, IoPencil } from 'react-icons/io5';
+import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
-import {
-  Dimensions,
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { motion } from 'framer-motion';
 import { getCapelinhoImage, getUserCapelinho } from '@/services/capelinhoService';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import PageTransition from '@/components/layout/PageTransition';
 
-const { width } = Dimensions.get('window');
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
 
 export default function Profile() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [capelinhoId, setCapelinhoId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -26,125 +30,52 @@ export default function Profile() {
   const avatarImage = getCapelinhoImage(capelinhoId);
 
   return (
-    <Background
-      title="Meu Perfil"
-      titleSize={30}
-      centerTitle={true}
-      showBackButton={true}
-      onBackPress={() => router.back()}
-    >
-      <View style={styles.content}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatarCircle}>
-            <Image source={avatarImage} style={styles.avatarImage} />
-          </View>
-          <TouchableOpacity
-            style={styles.changePhotoButton}
-            onPress={() => router.push('/profile/capelinhos' as any)}
-          >
-            <Text style={styles.changePhotoText}>Alterar foto de perfil</Text>
-          </TouchableOpacity>
-        </View>
+    <Background title="Meu Perfil" showBackButton>
+      <PageTransition>
+        <motion.div
+          className="flex-1 flex flex-col items-center pt-6"
+          variants={stagger}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div className="flex flex-col items-center mb-6" variants={fadeUp}>
+            <div className="w-28 h-28 rounded-full border-4 border-primary flex items-center justify-center mb-4 overflow-hidden bg-card animate-scale-in">
+              <img
+                src={avatarImage}
+                className="w-24 h-24 object-contain hover:scale-110 transition-transform duration-300"
+                alt=""
+              />
+            </div>
+              <Button
+                variant="outline"
+                className="rounded-full px-5 gap-1.5"
+                onClick={() => navigate('/profile/capelinhos')}
+              >
+                <IoPencil size={14} />
+                Alterar foto
+              </Button>
+          </motion.div>
 
-        <View style={styles.whiteCard}>
-          <View style={styles.inputContainer}>
-            <TextInput style={styles.input} placeholder="User" placeholderTextColor="#666" />
-            <TextInput style={styles.input} placeholder="Nome" placeholderTextColor="#666" />
-            <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#666" />
-            <TextInput style={styles.input} placeholder="CEP" placeholderTextColor="#666" keyboardType="numeric" maxLength={8} />
-          </View>
+          <motion.div className="w-full flex-1" variants={fadeUp}>
+            <Card className="rounded-t-3xl h-full">
+              <CardContent className="p-6 space-y-4">
+                <Input placeholder="User" className="h-12" />
+                <Input placeholder="Nome" className="h-12" />
+                <Input placeholder="E-mail" className="h-12" type="email" />
+                <Input placeholder="CEP" className="h-12" type="text" inputMode="numeric" maxLength={8} />
 
-          <TouchableOpacity
-            style={styles.historyButton}
-            onPress={() => router.push('/profile/historico' as any)}
-          >
-            <Ionicons name="time" size={20} color="#010080" style={{ marginRight: 8 }} />
-            <Text style={styles.historyButtonText}>Histórico de resultados do quiz</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+                  <Button
+                    variant="accent" size="lg" className="w-full gap-2"
+                    onClick={() => navigate('/profile/historico')}
+                  >
+                    <IoTimeOutline size={18} />
+                    Histórico de resultados
+                  </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      </PageTransition>
     </Background>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 10,
-  },
-  avatarCircle: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    borderWidth: 3,
-    borderColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-    overflow: 'hidden',
-    backgroundColor: '#fff',
-  },
-  avatarImage: {
-    width: 110,
-    height: 110,
-    resizeMode: 'contain',
-  },
-  changePhotoButton: {
-    backgroundColor: '#FFDE59',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  changePhotoText: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: '#010080',
-  },
-  whiteCard: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    width: width,
-    borderTopLeftRadius: 50,
-    borderTopRightRadius: 50,
-    paddingHorizontal: 30,
-    paddingTop: 40,
-    alignItems: 'center',
-  },
-  inputContainer: {
-    width: '100%',
-    gap: 15,
-    marginBottom: 40,
-  },
-  input: {
-    backgroundColor: '#D9D9D9',
-    height: 55,
-    borderRadius: 15,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    color: '#333',
-  },
-  historyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFDE59',
-    width: '100%',
-    height: 60,
-    borderRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  historyButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#010080',
-  },
-});

@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+
 
 const GEOAPIFY_API_KEY = '0b5a3219a82049159d600f759dd39595';
 

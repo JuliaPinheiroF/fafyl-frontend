@@ -1,32 +1,35 @@
 import Background from '@/components/layout/background';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, router } from 'expo-router';
+import { IoSchool, IoRefresh } from 'react-icons/io5';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
-import {
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { motion } from 'framer-motion';
 import { Fafyl } from '@/types';
 import { getRecommendations } from '@/services/fafylService';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import PageTransition from '@/components/layout/PageTransition';
 
-const { width } = Dimensions.get('window');
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
 
 export default function ResultadoScreen() {
-  const { profile } = useLocalSearchParams<{ profile: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const profile = searchParams.get('profile');
   const [results, setResults] = useState<Fafyl[]>([]);
   const [loading, setLoading] = useState(true);
   const [maxScore, setMaxScore] = useState(1);
 
   useEffect(() => {
     if (!profile) {
-      router.replace('/quiz' as any);
+      navigate('/quiz', { replace: true });
       return;
     }
 
@@ -38,7 +41,7 @@ export default function ResultadoScreen() {
       }
       setLoading(false);
     });
-  }, [profile]);
+  }, [profile, navigate]);
 
   const getPercentage = (score: number): number => {
     if (maxScore === 0) return 0;
@@ -46,287 +49,144 @@ export default function ResultadoScreen() {
   };
 
   const handleViewColleges = (courseId: number) => {
-    router.push({
-      pathname: '/busca/faculdades',
-      params: { courseId: courseId.toString() },
-    } as any);
+    navigate('/busca/faculdades?courseId=' + courseId);
   };
 
   const handleRetake = () => {
-    router.replace('/quiz' as any);
+    navigate('/quiz', { replace: true });
   };
 
   if (loading) {
     return (
-      <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Calculando compatibilidade...</Text>
-        </View>
+      <Background title="FAFYL" showBackButton>
+        <PageTransition>
+          <div className="flex-1 flex justify-center items-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-muted-foreground animate-pulse">
+                Calculando compatibilidade...
+              </span>
+            </div>
+          </div>
+        </PageTransition>
       </Background>
     );
   }
 
   if (results.length === 0) {
     return (
-      <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-        <View style={styles.emptyContainer}>
-          <Image
-            source={require('../../../assets/images/triste.png')}
-            style={styles.emptyImage}
-          />
-          <Text style={styles.emptyTitle}>Nenhum curso compatível</Text>
-          <Text style={styles.emptyText}>
-            Não encontramos cursos compatíveis com seu perfil. Tente refazer o quiz.
-          </Text>
-          <TouchableOpacity style={styles.retakeButton} onPress={handleRetake}>
-            <Text style={styles.retakeButtonText}>Refazer quiz</Text>
-          </TouchableOpacity>
-        </View>
+      <Background title="FAFYL" showBackButton>
+        <PageTransition>
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+            <img
+              src="/images/triste.png"
+              alt=""
+              className="w-24 h-24 mb-5 animate-scale-in"
+            />
+            <motion.h2
+              className="text-xl font-bold text-primary mb-2"
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+            >
+              Nenhum curso compatível
+            </motion.h2>
+            <motion.p
+              className="text-sm text-muted-foreground mb-8 max-w-sm"
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+            >
+              Não encontramos cursos compatíveis com seu perfil. Tente refazer o quiz.
+            </motion.p>
+            <Button variant="accent" onClick={handleRetake}>
+              Refazer quiz
+            </Button>
+          </div>
+        </PageTransition>
       </Background>
     );
   }
 
   return (
-    <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Image
-            source={require('../../../assets/images/muitofeliz.png')}
-            style={styles.headerImage}
-          />
-          <Text style={styles.headerTitle}>Seus cursos recomendados!</Text>
-          <Text style={styles.headerSubtitle}>
-            Com base no seu perfil DISC, encontramos {results.length} curso{results.length > 1 ? 's' : ''} compatívei{results.length > 1 ? 's' : 'l'}.
-          </Text>
-        </View>
+    <Background title="FAFYL" showBackButton>
+      <PageTransition>
+        <div className="flex-1 overflow-y-auto">
+          <motion.div
+            className="flex flex-col items-center px-4 pt-6 pb-4 text-center"
+            variants={stagger}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.img
+              src="/images/muitofeliz.png"
+              alt=""
+              className="w-16 h-16 mb-3"
+              variants={fadeUp}
+            />
+            <motion.h2 className="text-xl font-bold text-primary mb-1" variants={fadeUp}>
+              Seus cursos recomendados!
+            </motion.h2>
+            <motion.p className="text-sm text-muted-foreground" variants={fadeUp}>
+              Com base no seu perfil DISC, encontramos {results.length} curso{results.length > 1 ? 's' : ''} compatívei{results.length > 1 ? 's' : 'l'}.
+            </motion.p>
+          </motion.div>
 
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.course.id.toString()}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => {
-            const percentage = getPercentage(item.score);
-            return (
-              <View style={styles.resultCard}>
-                <View style={styles.resultHeader}>
-                  <Text style={styles.resultName}>{item.course.name}</Text>
-                  <View style={styles.percentageBadge}>
-                    <Text style={styles.percentageText}>{percentage}%</Text>
-                  </View>
-                </View>
+          <motion.div
+            className="px-4 pb-24 space-y-3"
+            variants={stagger}
+            initial="hidden"
+            animate="visible"
+          >
+            {results.map((item) => {
+              const percentage = getPercentage(item.score);
+              return (
+                <motion.div key={item.course.id} variants={fadeUp}>
+                  <Card className="rounded-2xl overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-base font-semibold text-primary flex-1 mr-2">{item.course.name}</h3>
+                        <div className="gold-gradient rounded-xl px-3 py-1 shrink-0 animate-scale-in shadow-[var(--shadow-glow-gold)]">
+                          <span className="text-sm font-bold text-accent-foreground">{percentage}%</span>
+                        </div>
+                      </div>
 
-                <Text style={styles.resultDesc} numberOfLines={2}>
-                  {item.course.description}
-                </Text>
+                      <p className="text-xs text-muted-foreground mb-3 leading-relaxed line-clamp-2">
+                        {item.course.description}
+                      </p>
 
-                {/* Score bar */}
-                <View style={styles.scoreTrack}>
-                  <View
-                    style={[
-                      styles.scoreFill,
-                      { width: `${percentage}%` },
-                    ]}
-                  />
-                </View>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-3">
+                        <motion.div
+                          className="h-full bg-accent rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percentage}%` }}
+                          transition={{ duration: 0.8, delay: 0.3 }}
+                        />
+                      </div>
 
-                <TouchableOpacity
-                  style={styles.collegesButton}
-                  onPress={() => handleViewColleges(item.course.id)}
-                >
-                  <Ionicons name="school" size={18} color="#010080" />
-                  <Text style={styles.collegesButtonText}>Ver faculdades</Text>
-                </TouchableOpacity>
-              </View>
-            );
-          }}
-          ListFooterComponent={
-            <TouchableOpacity style={styles.retakeButtonFooter} onPress={handleRetake}>
-              <Ionicons name="refresh" size={18} color="#010080" />
-              <Text style={styles.retakeButtonFooterText}>Refazer quiz</Text>
-            </TouchableOpacity>
-          }
-        />
-      </View>
+                        <Button
+                          variant="accent" size="lg" className="w-full gap-2"
+                          onClick={() => handleViewColleges(item.course.id)}
+                        >
+                          <IoSchool size={16} />
+                          Ver faculdades
+                        </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+
+            <Button
+              variant="outline" size="lg" className="w-full gap-2 mt-4"
+              onClick={handleRetake}
+            >
+              <IoRefresh size={16} />
+              Refazer quiz
+            </Button>
+          </motion.div>
+        </div>
+      </PageTransition>
     </Background>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    width: width,
-    marginTop: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 30,
-  },
-  emptyImage: {
-    width: 100,
-    height: 100,
-    marginBottom: 20,
-  },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#010080',
-    marginBottom: 10,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 22,
-  },
-  retakeButton: {
-    backgroundColor: '#FFDE59',
-    borderRadius: 25,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-  retakeButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#010080',
-  },
-  header: {
-    alignItems: 'center',
-    paddingHorizontal: 25,
-    paddingTop: 20,
-    paddingBottom: 16,
-  },
-  headerImage: {
-    width: 70,
-    height: 70,
-    marginBottom: 12,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#010080',
-    marginBottom: 6,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  listContent: {
-    paddingHorizontal: 25,
-    paddingBottom: 120,
-  },
-  resultCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  resultHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  resultName: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#010080',
-    flex: 1,
-    marginRight: 10,
-  },
-  percentageBadge: {
-    backgroundColor: '#010080',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    minWidth: 50,
-    alignItems: 'center',
-  },
-  percentageText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFD700',
-  },
-  resultDesc: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  scoreTrack: {
-    height: 6,
-    backgroundColor: '#EEE',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 14,
-  },
-  scoreFill: {
-    height: '100%',
-    backgroundColor: '#FFD700',
-    borderRadius: 3,
-  },
-  collegesButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFDE59',
-    borderRadius: 20,
-    paddingVertical: 12,
-    gap: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-  },
-  collegesButtonText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#010080',
-  },
-  retakeButtonFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingVertical: 14,
-    marginTop: 10,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#010080',
-  },
-  retakeButtonFooterText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#010080',
-  },
-});

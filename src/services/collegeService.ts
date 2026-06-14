@@ -1,3 +1,4 @@
+import { USE_MOCKS } from '@/config/env';
 import { College, CourseImp } from '@/types';
 import { request } from './api';
 import { getAllCourseImps } from './courseService';
@@ -46,6 +47,7 @@ const MOCK_COLLEGES: College[] = [
 ];
 
 export async function getAllColleges(): Promise<College[]> {
+  if (USE_MOCKS) return MOCK_COLLEGES;
   try {
     const response: any = await request('/college');
     return response.content || response;
@@ -55,6 +57,10 @@ export async function getAllColleges(): Promise<College[]> {
 }
 
 export async function getCollegeCourses(id: number): Promise<CourseImp[]> {
+  if (USE_MOCKS) {
+    const allImps = await getAllCourseImps();
+    return allImps.filter((imp) => imp.college.id === id);
+  }
   try {
     const response: any = await request(`/college/${id}/course`);
     return response.content || response;

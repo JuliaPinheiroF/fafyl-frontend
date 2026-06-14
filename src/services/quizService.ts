@@ -1,3 +1,4 @@
+import { USE_MOCKS } from '@/config/env';
 import { Question, Alternative } from '@/types';
 import { request } from './api';
 
@@ -125,6 +126,7 @@ const MOCK_QUESTIONS: Question[] = [
 ];
 
 export async function getQuestions(): Promise<Question[]> {
+  if (USE_MOCKS) return MOCK_QUESTIONS;
   try {
     return await request<Question[]>('/data/questions');
   } catch {
