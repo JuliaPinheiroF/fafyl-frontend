@@ -2,15 +2,17 @@ import Background from '@/components/layout/background';
 import MapModal from '@/components/MapModal';
 import { getAllColleges, getCollegeCourses } from '@/services/collegeService';
 import { College, CourseImp } from '@/types';
-import { IoChevronForward, IoMap } from 'react-icons/io5';
+import { IoChevronForward, IoMap, IoLocate } from 'react-icons/io5';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import FaculdadeDetailSkeleton from '@/components/skeletons/FaculdadeDetailSkeleton';
 import { resolveImageUrl } from '@/utils/imageResolver';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import PageTransition from '@/components/layout/PageTransition';
+import { getCachedLocation, setCachedLocation } from '@/utils/locationCache';
+import { calculateHaversineDistance, formatDistanceCompact } from '@/utils/distance';
+import { USE_MOCKS } from '@/config/env';
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -33,6 +35,9 @@ export default function FaculdadeDetailScreen() {
   const [mapVisible, setMapVisible] = useState(false);
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
   const [pulseStep, setPulseStep] = useState(0);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -75,6 +80,54 @@ export default function FaculdadeDetailScreen() {
       }
     }
   }, [highlightCourseId, courses, loading]);
+
+  useEffect(() => {
+    const cached = getCachedLocation();
+    if (cached) {
+      setUserLocation(cached);
+      return;
+    }
+
+    if (USE_MOCKS) {
+      const mockLoc = { lat: -23.5505, lon: -46.6333 };
+      setUserLocation(mockLoc);
+      setCachedLocation(mockLoc.lat, mockLoc.lon);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setLocationError(true);
+      return;
+    }
+
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const loc = {
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        };
+        setUserLocation(loc);
+        setCachedLocation(loc.lat, loc.lon);
+        setLocationLoading(false);
+      },
+      () => {
+        setLocationError(true);
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
+
+  const distance: number | null =
+    userLocation && college?.locale
+      ? calculateHaversineDistance(
+          userLocation.lat,
+          userLocation.lon,
+          college.locale.lat,
+          college.locale.lon
+        )
+      : null;
 
   const isHighlighted = (courseId: number) => highlightedId === courseId;
 
@@ -128,8 +181,29 @@ export default function FaculdadeDetailScreen() {
             </motion.div>
 
             {college.locale && (
-              <motion.div variants={fadeUp}>
-                <Button size="lg" className="w-full mb-5 gap-2" onClick={() => setMapVisible(true)}>
+              <motion.div variants={fadeUp} className="space-y-3 mb-5">
+                {distance !== null ? (
+                  <div className="flex items-center gap-2 bg-accent/30 rounded-xl px-4 py-3">
+                    <IoLocate size={18} className="text-primary shrink-0" />
+                    <span className="text-sm text-foreground">
+                      <strong className="text-primary">{formatDistanceCompact(distance)}</strong> de distância
+                    </span>
+                  </div>
+                ) : locationLoading ? (
+                  <div className="flex items-center gap-2 bg-accent/30 rounded-xl px-4 py-3">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-muted-foreground">Obtendo distância...</span>
+                  </div>
+                ) : locationError ? (
+                  <div className="flex items-center gap-2 bg-accent/30 rounded-xl px-4 py-3">
+                    <IoLocate size={18} className="text-muted-foreground shrink-0" />
+                    <span className="text-sm text-muted-foreground">
+                      Permita acesso à localização para ver a distância
+                    </span>
+                  </div>
+                ) : null}
+
+                <Button size="lg" className="w-full gap-2" onClick={() => setMapVisible(true)}>
                   <IoMap size={18} />
                   Ver no Mapa
                 </Button>
