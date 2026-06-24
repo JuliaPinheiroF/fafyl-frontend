@@ -68,17 +68,15 @@ export default function FaculdadesScreen() {
 
   const renderCard = (item: College) => (
     <motion.div key={item.id} variants={itemVariants}>
-      <Card className="overflow-hidden border-0">
+      <Card className="overflow-hidden border-0 gap-0 pb-0 pt-0">
         {resolveImageUrl(item.image) && (
-          <div className="h-40 overflow-hidden">
-            <img
-              src={resolveImageUrl(item.image)}
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-              alt={item.name}
-            />
-          </div>
+          <img
+            src={resolveImageUrl(item.image)}
+            className="h-40 w-full object-cover hover:scale-105 transition-transform duration-500"
+            alt={item.name}
+          />
         )}
-        <CardContent className="p-5 bg-primary">
+        <CardContent className="bg-primary py-(--card-spacing)">
           <h3 className="text-lg font-bold text-accent mb-2">{item.name}</h3>
           <p className="text-sm text-primary-foreground/80 mb-4 line-clamp-3">{item.description}</p>
             <Button

@@ -1,11 +1,6 @@
 
-
-const GEOAPIFY_API_KEY = '0b5a3219a82049159d600f759dd39595';
-
-const TILE_URL_TEMPLATE = `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${GEOAPIFY_API_KEY}`;
-
-export function getTileUrl(style: string = 'osm-bright'): string {
-  return TILE_URL_TEMPLATE.replace('osm-bright', style);
+export function getTileUrl(_style?: string): string {
+  return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 }
 
 export interface RouteResult {
@@ -17,10 +12,9 @@ export interface RouteResult {
 export async function calculateRoute(
   origin: { lat: number; lon: number },
   destination: { lat: number; lon: number },
-  mode: 'drive' | 'walk' | 'bicycle' = 'drive'
+  _mode?: string
 ): Promise<RouteResult> {
-  const waypoints = `${origin.lat},${origin.lon}|${destination.lat},${destination.lon}`;
-  const url = `https://api.geoapify.com/v1/routing?waypoints=${waypoints}&mode=${mode}&apiKey=${GEOAPIFY_API_KEY}`;
+  const url = `https://router.project-osrm.org/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?geometries=geojson&overview=full`;
 
   const response = await fetch(url);
   
@@ -29,26 +23,13 @@ export async function calculateRoute(
   }
 
   const data = await response.json();
-
-  // Extrair coordenadas da rota
-  let coordinates: [number, number][] = [];
-  const geometry = data.features?.[0]?.geometry;
-  
-  if (geometry?.type === 'MultiLineString' && Array.isArray(geometry.coordinates)) {
-    coordinates = geometry.coordinates[0] || [];
-  } else if (geometry?.type === 'LineString' && Array.isArray(geometry.coordinates)) {
-    coordinates = geometry.coordinates;
-  }
-  
-  // Extrair distância e tempo
-  const properties = data.features?.[0]?.properties || {};
-  const distance = properties.distance || 0;
-  const time = properties.time || 0;
+  const route = data.routes?.[0];
+  if (!route) throw new Error('No route found');
 
   return {
-    coordinates,
-    distance,
-    time,
+    coordinates: route.geometry.coordinates,
+    distance: Math.round(route.distance),
+    time: Math.round(route.duration),
   };
 }
 

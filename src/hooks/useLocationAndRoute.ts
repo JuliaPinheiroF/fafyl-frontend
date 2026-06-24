@@ -1,5 +1,6 @@
 import { USE_MOCKS } from '@/config/env';
 import { useState, useCallback } from 'react';
+import { calculateRoute } from '@/services/geoapifyService';
 
 export type LocationError = 'no_permission' | 'no_internet' | 'gps_disabled' | 'location_unavailable' | 'route_failed' | null;
 
@@ -16,12 +17,10 @@ export interface UseLocationAndRouteReturn {
   error: LocationError;
   errorMessage: string;
   hasPermission: boolean;
-  getCurrentLocation: () => Promise<void>;
+  getCurrentLocation: () => Promise<{ lat: number; lon: number }>;
   calculateRouteTo: (destination: { lat: number; lon: number }) => Promise<void>;
   clearError: () => void;
 }
-
-const GEOAPIFY_API_KEY = '0b5a3219a82049159d600f759dd39595';
 
 const getErrorMessage = (err: LocationError): string => {
   switch (err) {
@@ -40,14 +39,15 @@ const getErrorMessage = (err: LocationError): string => {
   }
 };
 
+const MOCK_LOCATION = { lat: -23.5505, lon: -46.6333 };
+
 export default function useLocationAndRoute(): UseLocationAndRouteReturn {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<LocationError>(null);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
-  const getCurrentLocationWeb = useCallback(async (): Promise<{ lat: number; lon: number }> => {
+  const getCurrentLocationWeb = useCallback((): Promise<{ lat: number; lon: number }> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         setError('location_unavailable');
@@ -77,54 +77,14 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
     });
   }, []);
 
-  const calculateRouteWeb = async (origin: { lat: number; lon: number }, destination: { lat: number; lon: number }): Promise<RouteResult> => {
-    const waypoints = `${origin.lat},${origin.lon}|${destination.lat},${destination.lon}`;
-    const url = `https://api.geoapify.com/v1/routing?waypoints=${waypoints}&mode=drive&apiKey=${GEOAPIFY_API_KEY}`;
-
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const data = await response.json();
-    let coordinates: [number, number][] = [];
-    const geometry = data.features?.[0]?.geometry;
-
-    if (geometry?.type === 'MultiLineString' && Array.isArray(geometry.coordinates)) {
-      coordinates = geometry.coordinates[0] || [];
-    } else if (geometry?.type === 'LineString' && Array.isArray(geometry.coordinates)) {
-      coordinates = geometry.coordinates;
-    }
-
-    const properties = data.features?.[0]?.properties || {};
-    return {
-      coordinates,
-      distance: properties.distance || 0,
-      time: properties.time || 0,
-    };
-  };
-
-  const getCurrentLocation = useCallback(async () => {
+  const getCurrentLocation = useCallback(async (): Promise<{ lat: number; lon: number }> => {
     if (USE_MOCKS) {
-      setCurrentLocation({ lat: -23.5505, lon: -46.6333 });
-      return;
+      setCurrentLocation(MOCK_LOCATION);
+      return MOCK_LOCATION;
     }
 
-    const isWeb = typeof window !== 'undefined' && navigator?.geolocation != null;
-
-    if (isWeb) {
-      try {
-        setLoading(true);
-        setError(null);
-        await getCurrentLocationWeb();
-      } catch {
-        // Error already set
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    setError('location_unavailable');
-    setLoading(false);
+    const loc = await getCurrentLocationWeb();
+    return loc;
   }, [getCurrentLocationWeb]);
 
   const calculateRouteTo = useCallback(async (destination: { lat: number; lon: number }) => {
@@ -137,27 +97,20 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
       return;
     }
 
-    const isWeb = typeof window !== 'undefined' && navigator?.geolocation != null;
-
     try {
       setLoading(true);
       setError(null);
       setRoute(null);
 
-      if (isWeb) {
-        const loc = await getCurrentLocationWeb();
-        const result = await calculateRouteWeb(loc, destination);
-        setRoute(result);
-        setLoading(false);
-        return;
-      }
-
-      setError('route_failed');
-      setRoute(null);
-
+      const loc = await getCurrentLocationWeb();
+      const result = await calculateRoute(loc, destination, 'drive');
+      setRoute(result);
     } catch (err: any) {
-      const errorCode = err?.code || err?.message;
-      if (errorCode === 'no_internet' || errorCode === 'network unavailable' || err instanceof TypeError) {
+      if (
+        err?.code === 'no_internet' ||
+        err?.message === 'network unavailable' ||
+        err instanceof TypeError
+      ) {
         setError('no_internet');
       } else {
         setError('route_failed');
@@ -166,7 +119,7 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
     } finally {
       setLoading(false);
     }
-  }, [currentLocation, getCurrentLocationWeb]);
+  }, [getCurrentLocationWeb]);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -178,7 +131,7 @@ export default function useLocationAndRoute(): UseLocationAndRouteReturn {
     loading,
     error,
     errorMessage: error ? getErrorMessage(error) : '',
-    hasPermission: hasPermission ?? false,
+    hasPermission: USE_MOCKS || (typeof navigator !== 'undefined' && !!navigator.geolocation),
     getCurrentLocation,
     calculateRouteTo,
     clearError,
