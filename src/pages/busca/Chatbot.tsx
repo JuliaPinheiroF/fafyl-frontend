@@ -1,5 +1,4 @@
 import Background from '@/components/layout/background';
-import ChatSkeleton from '@/components/skeletons/ChatSkeleton';
 import { sendChatMessage } from '@/services/chatbotService';
 import { ChatMessage } from '@/types';
 import React, { useRef, useState } from 'react';
@@ -64,7 +63,10 @@ export default function ChatbotScreen() {
         <div className="flex-1 flex flex-col">
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 ? (
-              <ChatSkeleton />
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2 py-16">
+                <img src="/images/curioso.png" className="w-16 h-16 rounded-full object-contain opacity-60" alt="" />
+                <p className="text-sm">Digite uma mensagem para começar</p>
+              </div>
             ) : (
               <AnimatePresence initial={false}>
                 {messages.map((msg) =>

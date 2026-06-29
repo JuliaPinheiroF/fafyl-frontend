@@ -1,5 +1,7 @@
 @import "tw-animate-css";
 @import "@fontsource-variable/geist";
+@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap');
+
 
 @import "tailwindcss";
 
@@ -119,3 +121,4 @@ html {
   max-width: none !important;
   max-height: none !important;
 }
+
