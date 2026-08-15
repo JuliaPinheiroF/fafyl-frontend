@@ -1,4 +1,5 @@
 import Background from '@/components/layout/background';
+import SwipeablePage from '@/components/layout/SwipeablePage';
 import Corrossel from '@/components/ui/corrossel';
 import { router } from 'expo-router';
 import React from 'react';
@@ -10,14 +11,17 @@ export default function Home() {
   return (
     <Background title="FAFYL" showUserIcon={true}
       onUserIconPress={() => router.push('/profile' as any)}>
-      <View style={styles.whiteContainer}>
-        <ScrollView 
-          showsVerticalScrollIndicator={false} 
-          contentContainerStyle={styles.scrollContent}
-        >
-          <Text style={styles.sectionTitle}>Universidades em destaque:</Text>
-          
-          <Corrossel />
+      <SwipeablePage>
+        <View style={styles.whiteContainer}>
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={styles.scrollContent}
+          >
+            <Text style={styles.sectionTitle}>Universidades em destaque:</Text>
+
+            <View style={styles.carrosselWrapper}>
+              <Corrossel />
+            </View>
 
           <View style={styles.quizSection}>
             <Text style={styles.sectionTitle}>Faça nosso Quiz Indicador:</Text>
@@ -47,6 +51,7 @@ export default function Home() {
           </View>
         </ScrollView>
       </View>
+      </SwipeablePage>
     </Background>
   );
 }
@@ -64,6 +69,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     paddingTop: 30,
     paddingBottom: 110, // Espaço extra para não sumir atrás da barra azul
+  },
+  carrosselWrapper: {
+    marginHorizontal: -25,
   },
   sectionTitle: {
     fontSize: 18,
