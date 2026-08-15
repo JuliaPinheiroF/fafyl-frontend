@@ -1,7 +1,9 @@
 import Background from '@/components/layout/background';
+import FilterBar from '@/components/filter/FilterBar';
+import Pagination from '@/components/filter/Pagination';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -12,39 +14,95 @@ import {
   View,
 } from 'react-native';
 import { Course } from '@/types';
-import { getAllCourses } from '@/services/courseService';
+import { getAllCourses, getCoursesFiltered } from '@/services/courseService';
 import CursosSkeleton from '@/components/skeletons/CursosSkeleton';
 
 const { width } = Dimensions.get('window');
+const ITEMS_PER_PAGE = 20;
+const SEARCH_PAGE_SIZE = 50;
 
 export default function CursosScreen() {
   const [courses, setCourses] = useState<Course[]>([]);
-  const [filtered, setFiltered] = useState<Course[]>([]);
+  const [serverResults, setServerResults] = useState<Course[]>([]);
+  const [searching, setSearching] = useState(false);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const [category, setCategory] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [direction, setDirection] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(0);
+
+  const searchSeq = useRef(0);
 
   useEffect(() => {
     getAllCourses().then((data) => {
       setCourses(data);
-      setFiltered(data);
       setLoading(false);
     });
   }, []);
 
   useEffect(() => {
-    if (search.trim() === '') {
-      setFiltered(courses);
-    } else {
-      const q = search.toLowerCase();
-      setFiltered(
-        courses.filter(
+    setPage(0);
+    const q = search.trim().toLowerCase();
+    if (!q) {
+      setSearching(false);
+      setServerResults([]);
+      return;
+    }
+
+    setSearching(true);
+    setServerResults([]);
+    const seq = ++searchSeq.current;
+
+    (async () => {
+      const matches: Course[] = [];
+      let pageNum = 0;
+      let pages = Infinity;
+      let guard = 0;
+
+      while (pageNum < pages && guard < 500) {
+        guard++;
+        const res = await getCoursesFiltered({
+          page: pageNum,
+          size: SEARCH_PAGE_SIZE,
+          category: category || undefined,
+          sortBy: 'name',
+          direction: 'asc',
+        });
+        if (searchSeq.current !== seq) return;
+
+        pages = res.totalPages;
+        const part = res.content.filter(
           (c) =>
             c.name.toLowerCase().includes(q) ||
             c.description.toLowerCase().includes(q)
-        )
-      );
-    }
-  }, [search, courses]);
+        );
+        matches.push(...part);
+        pageNum++;
+      }
+
+      if (searchSeq.current !== seq) return;
+      setServerResults(matches);
+      setSearching(false);
+    })();
+  }, [search, category]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [sortBy, direction]);
+
+  const base = search.trim() ? serverResults : courses;
+  const filtered = base.filter((c) => (category ? c.category === category : true));
+
+  filtered.sort((a, b) => {
+    const dir = direction === 'desc' ? -1 : 1;
+    if (sortBy === 'name') return dir * a.name.localeCompare(b.name);
+    return dir * (a.id - b.id);
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const displayList = filtered.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
 
   const renderCard = ({ item }: { item: Course }) => (
     <TouchableOpacity
@@ -70,21 +128,41 @@ export default function CursosScreen() {
             style={styles.searchInput}
             placeholder="Buscar curso..."
             value={search}
-            onChangeText={setSearch}
+            onChangeText={(t) => {
+              setSearch(t);
+              setPage(0);
+            }}
           />
         </View>
 
+        <FilterBar
+          showCategory
+          category={category}
+          onCategoryChange={(v) => setCategory(v)}
+          sortBy={sortBy}
+          direction={direction}
+          onSortChange={(by, dir) => {
+            setSortBy(by);
+            setDirection(dir);
+          }}
+        />
+
         {loading ? (
           <CursosSkeleton />
-        ) : filtered.length === 0 ? (
+        ) : searching ? (
+          <Text style={styles.searchingText}>Procurando o curso em todas as páginas...</Text>
+        ) : displayList.length === 0 ? (
           <Text style={styles.emptyText}>Nenhum curso encontrado</Text>
         ) : (
           <FlatList
-            data={filtered}
+            data={displayList}
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderCard}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
+            ListFooterComponent={
+              <Pagination current={page} total={totalPages} onChange={setPage} />
+            }
           />
         )}
       </View>
@@ -117,7 +195,12 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 16,
   },
-  loader: { marginTop: 60 },
+  searchingText: {
+    textAlign: 'center',
+    fontSize: 15,
+    color: '#666',
+    marginTop: 50,
+  },
   emptyText: {
     textAlign: 'center',
     fontSize: 16,

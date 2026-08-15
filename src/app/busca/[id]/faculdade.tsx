@@ -1,5 +1,7 @@
 import Background from '@/components/layout/background';
 import MapModal from '@/components/MapModal';
+import FilterBar from '@/components/filter/FilterBar';
+import Pagination from '@/components/filter/Pagination';
 import { getAllColleges, getCollegeCourses } from '@/services/collegeService';
 import { College, CourseImp } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,8 +20,11 @@ import {
 } from 'react-native';
 import FaculdadeDetailSkeleton from '@/components/skeletons/FaculdadeDetailSkeleton';
 import { resolveImageUrl } from '@/utils/imageResolver';
+import useLocationAndRoute from '@/hooks/useLocationAndRoute';
+import { calculateHaversineDistance, formatDistanceCompact } from '@/utils/distance';
 
 const { width } = Dimensions.get('window');
+const ITEMS_PER_PAGE = 20;
 
 export default function FaculdadeDetailScreen() {
   const { id, highlightCourseId } = useLocalSearchParams<{ id: string; highlightCourseId?: string }>();
@@ -28,6 +33,18 @@ export default function FaculdadeDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [mapVisible, setMapVisible] = useState(false);
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
+  const [category, setCategory] = useState('');
+  const [coursePage, setCoursePage] = useState(0);
+
+  const { currentLocation, getCurrentLocation } = useLocationAndRoute();
+
+  useEffect(() => {
+    getCurrentLocation();
+  }, [getCurrentLocation]);
+
+  useEffect(() => {
+    if (coursePage !== 0) setCoursePage(0);
+  }, [category]);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const courseRefs = useRef<Map<number, View>>(new Map());
@@ -123,6 +140,27 @@ export default function FaculdadeDetailScreen() {
 
   const showMapButton = Platform.OS !== 'web' && !!college.locale;
 
+  const collegeDistance = college.locale && currentLocation
+    ? formatDistanceCompact(
+        calculateHaversineDistance(
+          currentLocation.lat,
+          currentLocation.lon,
+          college.locale.lat,
+          college.locale.lon
+        )
+      )
+    : null;
+
+  const filteredCourses = courses.filter((c) => {
+    if (!category) return true;
+    return c.course?.category === category;
+  });
+  const totalCoursePages = Math.max(1, Math.ceil(filteredCourses.length / ITEMS_PER_PAGE));
+  const displayedCourses = filteredCourses.slice(
+    coursePage * ITEMS_PER_PAGE,
+    (coursePage + 1) * ITEMS_PER_PAGE
+  );
+
   return (
     <Background title="FAFYL" showBackButton onBackPress={() => router.back()}>
       <ScrollView
@@ -135,6 +173,9 @@ export default function FaculdadeDetailScreen() {
         <View style={styles.headerBody}>
           <Text style={styles.collegeName}>{college.name}</Text>
           <Text style={styles.collegeDesc}>{college.description}</Text>
+          {collegeDistance != null && (
+            <Text style={styles.collegeDistance}>{collegeDistance} de você</Text>
+          )}
         </View>
 
         {showMapButton && (
@@ -146,31 +187,42 @@ export default function FaculdadeDetailScreen() {
 
         <Text style={styles.sectionTitle}>Cursos oferecidos:</Text>
 
-        {courses.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhum curso disponível</Text>
+        <FilterBar
+          showCategory
+          category={category}
+          onCategoryChange={(v) => setCategory(v)}
+        />
+
+        {filteredCourses.length === 0 ? (
+          <Text style={styles.emptyText}>
+            {courses.length === 0 ? 'Nenhum curso disponível' : 'Nenhum curso nessa área'}
+          </Text>
         ) : (
-          courses.map((course) => (
-            <Animated.View
-              key={course.id}
-              style={getCourseStyle(course.id)}
-              ref={(ref) => {
-                if (ref) courseRefs.current.set(course.id, ref);
-              }}
-            >
-              <TouchableOpacity
-                style={styles.courseCard}
-                onPress={() => router.push(`/busca/${course.course?.id || course.id}/curso` as any)}
+          <>
+            {displayedCourses.map((course) => (
+              <Animated.View
+                key={course.id}
+                style={getCourseStyle(course.id)}
+                ref={(ref: any) => {
+                  if (ref) courseRefs.current.set(course.id, ref);
+                }}
               >
-                <View style={styles.courseBody}>
-                  <Text style={styles.courseName}>{course.course?.name || 'Curso'}</Text>
-                  <Text style={styles.courseDesc} numberOfLines={2}>
-                    {course.details || course.course?.description || ''}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={22} color="#010080" />
-              </TouchableOpacity>
-            </Animated.View>
-          ))
+                <TouchableOpacity
+                  style={styles.courseCard}
+                  onPress={() => router.push(`/busca/${course.course?.id || course.id}/curso` as any)}
+                >
+                  <View style={styles.courseBody}>
+                    <Text style={styles.courseName}>{course.course?.name || 'Curso'}</Text>
+                    <Text style={styles.courseDesc} numberOfLines={2}>
+                      {course.details || course.course?.description || ''}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={22} color="#010080" />
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+            <Pagination current={coursePage} total={totalCoursePages} onChange={setCoursePage} />
+          </>
         )}
       </ScrollView>
 
@@ -229,6 +281,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  collegeDistance: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#010080',
+    marginTop: 6,
   },
   sectionTitle: {
     fontSize: 18,

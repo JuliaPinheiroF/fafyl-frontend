@@ -1,4 +1,6 @@
 import Background from '@/components/layout/background';
+import FilterBar from '@/components/filter/FilterBar';
+import Pagination from '@/components/filter/Pagination';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -13,55 +15,90 @@ import {
   View,
 } from 'react-native';
 import { College } from '@/types';
-import { getAllColleges, getCollegeCourses } from '@/services/collegeService';
+import { getAllColleges, getCollegesFiltered } from '@/services/collegeService';
 import FaculdadesSkeleton from '@/components/skeletons/FaculdadesSkeleton';
 import { resolveImageUrl } from '@/utils/imageResolver';
+import useLocationAndRoute from '@/hooks/useLocationAndRoute';
 
 const { width } = Dimensions.get('window');
+const ITEMS_PER_PAGE = 20;
 
 export default function FaculdadesScreen() {
   const { courseId } = useLocalSearchParams<{ courseId?: string }>();
   const [colleges, setColleges] = useState<College[]>([]);
-  const [filtered, setFiltered] = useState<College[]>([]);
+  const [serverColleges, setServerColleges] = useState<College[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getAllColleges().then(async (data) => {
-      let filteredColleges = data;
+  const [maxDistance, setMaxDistance] = useState(0);
+  const [sortBy, setSortBy] = useState('name');
+  const [direction, setDirection] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
+  const { currentLocation, getCurrentLocation } = useLocationAndRoute();
+
+  useEffect(() => {
+    getCurrentLocation();
+  }, [getCurrentLocation]);
+
+  useEffect(() => {
+    getAllColleges().then((data) => {
+      let filteredColleges = data;
       if (courseId) {
         const id = parseInt(courseId, 10);
-        const withCourse: College[] = [];
-        for (const college of data) {
-          const imps = await getCollegeCourses(college.id);
-          if (imps.some((imp) => imp.course.id === id)) {
-            withCourse.push(college);
-          }
-        }
-        filteredColleges = withCourse;
+        filteredColleges = data.filter((college) =>
+          college.courses.some((imp) => imp.course.id === id)
+        );
       }
-
       setColleges(filteredColleges);
-      setFiltered(filteredColleges);
       setLoading(false);
     });
   }, [courseId]);
 
   useEffect(() => {
-    if (search.trim() === '') {
-      setFiltered(colleges);
-    } else {
-      const q = search.toLowerCase();
-      setFiltered(
-        colleges.filter(
-          (c) =>
-            c.name.toLowerCase().includes(q) ||
-            c.description.toLowerCase().includes(q)
-        )
-      );
+    setPage(0);
+  }, [maxDistance, sortBy, direction, courseId]);
+
+  useEffect(() => {
+    if (maxDistance > 0) {
+      if (!currentLocation) {
+        setServerColleges([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      getCollegesFiltered({
+        lat: currentLocation.lat,
+        lon: currentLocation.lon,
+        maxDistance,
+        sortBy,
+        direction,
+        page,
+        size: ITEMS_PER_PAGE,
+      }).then((res) => {
+        setServerColleges(res.content);
+        setTotalPages(res.totalPages);
+        setLoading(false);
+      });
     }
-  }, [search, colleges]);
+  }, [maxDistance, sortBy, direction, page, currentLocation]);
+
+  const clientList = colleges.filter((c) => {
+    const q = search.trim().toLowerCase();
+    if (q && !c.name.toLowerCase().includes(q) && !c.description.toLowerCase().includes(q)) {
+      return false;
+    }
+    return true;
+  });
+
+  const displayTotalPages = maxDistance > 0
+    ? totalPages
+    : Math.ceil(clientList.length / ITEMS_PER_PAGE);
+
+  const displayList = maxDistance > 0
+    ? serverColleges
+    : clientList.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
 
   const renderCard = ({ item }: { item: College }) => {
     const imageUrl = resolveImageUrl(item.image);
@@ -97,7 +134,7 @@ export default function FaculdadesScreen() {
           <View style={styles.filterBanner}>
             <Ionicons name="filter" size={16} color="#010080" />
             <Text style={styles.filterText}>Mostrando faculdades com o curso selecionado</Text>
-            <TouchableOpacity onPress={() => { setFiltered(colleges); setSearch(''); }} style={styles.clearFilter}>
+            <TouchableOpacity onPress={() => setSearch('')} style={styles.clearFilter}>
               <Text style={styles.clearFilterText}>Limpar</Text>
             </TouchableOpacity>
           </View>
@@ -109,21 +146,43 @@ export default function FaculdadesScreen() {
             style={styles.searchInput}
             placeholder="Buscar faculdade..."
             value={search}
-            onChangeText={setSearch}
+            onChangeText={(t) => {
+              setSearch(t);
+              setPage(0);
+            }}
           />
         </View>
 
+        <FilterBar
+          showDistance
+          maxDistance={maxDistance || undefined}
+          onMaxDistanceChange={(v) => setMaxDistance(v)}
+          sortBy={sortBy}
+          direction={direction}
+          onSortChange={(by, dir) => {
+            setSortBy(by);
+            setDirection(dir);
+          }}
+        />
+
         {loading ? (
           <FaculdadesSkeleton />
-        ) : filtered.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhuma faculdade encontrada</Text>
+        ) : displayList.length === 0 ? (
+          <Text style={styles.emptyText}>
+            {maxDistance > 0 && !currentLocation
+              ? 'Permita acesso à localização para filtrar por distância'
+              : 'Nenhuma faculdade encontrada'}
+          </Text>
         ) : (
           <FlatList
-            data={filtered}
+            data={displayList}
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderCard}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
+            ListFooterComponent={
+              <Pagination current={page} total={displayTotalPages} onChange={setPage} />
+            }
           />
         )}
       </View>
@@ -181,7 +240,6 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 16,
   },
-  loader: { marginTop: 60 },
   emptyText: {
     textAlign: 'center',
     fontSize: 16,

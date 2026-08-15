@@ -1,7 +1,8 @@
 import Background from '@/components/layout/background';
 import MapModal from '@/components/MapModal';
+import FilterBar from '@/components/filter/FilterBar';
 import CursoDetailSkeleton from '@/components/skeletons/CursoDetailSkeleton';
-import { getAllCourses } from '@/services/courseService';
+import { getCourseById } from '@/services/courseService';
 import { getCollegesWithCourse } from '@/services/fafylService';
 import { Course, College, CourseImp } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +10,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -16,8 +18,40 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import useLocationAndRoute from '@/hooks/useLocationAndRoute';
+import { calculateHaversineDistance, formatDistanceCompact } from '@/utils/distance';
 
 const { width } = Dimensions.get('window');
+
+const PERIOD_LABELS: Record<string, string> = {
+  matutino: 'Matutino',
+  vespertino: 'Vespertino',
+  noturno: 'Noturno',
+  integral: 'Integral',
+};
+
+function renderStars(value: number | null | undefined) {
+  if (value == null) {
+    return <Text style={styles.starDash}>—</Text>;
+  }
+  const stars: React.ReactNode[] = [];
+  for (let i = 1; i <= 5; i++) {
+    stars.push(
+      <Ionicons
+        key={i}
+        name={i <= value ? 'star' : 'star-outline'}
+        size={14}
+        color={i <= value ? '#FFC107' : '#9E9E9E'}
+      />
+    );
+  }
+  return (
+    <View style={styles.starsRow}>
+      {stars}
+      <Text style={styles.starValue}>{value}/5</Text>
+    </View>
+  );
+}
 
 export default function CursoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,18 +60,42 @@ export default function CursoDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [mapVisible, setMapVisible] = useState(false);
   const [selectedImp, setSelectedImp] = useState<CourseImp | null>(null);
+  const [maxDistance, setMaxDistance] = useState(0);
+
+  const { currentLocation, getCurrentLocation } = useLocationAndRoute();
+
+  useEffect(() => {
+    getCurrentLocation();
+  }, [getCurrentLocation]);
 
   useEffect(() => {
     const courseId = parseInt(id || '0', 10);
-    Promise.all([getAllCourses(), getCollegesWithCourse(courseId)]).then(
-      ([courses, results]) => {
-        const found = courses.find((c) => c.id === courseId);
-        setCourse(found || null);
+    Promise.all([getCourseById(courseId), getCollegesWithCourse(courseId)]).then(
+      ([found, results]) => {
+        setCourse(found);
         setItems(results);
         setLoading(false);
       }
     );
   }, [id]);
+
+  const distanceOf = (item: { college: College; courseImp: CourseImp }): number | null => {
+    const loc = item.courseImp.locale ?? item.college.locale;
+    if (!loc || !currentLocation) return null;
+    return calculateHaversineDistance(
+      currentLocation.lat,
+      currentLocation.lon,
+      loc.lat,
+      loc.lon
+    );
+  };
+
+  const displayItems = maxDistance > 0 && currentLocation
+    ? items.filter((item) => {
+        const dist = distanceOf(item);
+        return dist !== null && dist <= maxDistance;
+      })
+    : items;
 
   const handleViewMap = (imp: CourseImp) => {
     setSelectedImp(imp);
@@ -84,15 +142,32 @@ export default function CursoDetailScreen() {
 
         <Text style={styles.sectionTitle}>Faculdades com {course.name}:</Text>
 
-        {items.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhuma faculdade com esse curso</Text>
+        <FilterBar
+          showDistance
+          maxDistance={maxDistance || undefined}
+          onMaxDistanceChange={(v) => setMaxDistance(v)}
+        />
+
+        {maxDistance > 0 && !currentLocation && (
+          <Text style={styles.hintText}>
+            Permita acesso à localização para filtrar por distância
+          </Text>
+        )}
+
+        {displayItems.length === 0 ? (
+          <Text style={styles.emptyText}>
+            {maxDistance > 0 && !currentLocation
+              ? 'Permita acesso à localização para filtrar por distância'
+              : 'Nenhuma faculdade com esse curso'}
+          </Text>
         ) : (
-          items.map(({ college, courseImp }) => (
-            <CourseImpCard 
-              key={courseImp.id} 
+          displayItems.map(({ college, courseImp }) => (
+            <CourseImpCard
+              key={courseImp.id}
               imp={{ ...courseImp, college }}
-              isMobile={isMobile} 
-              onViewMap={handleViewMap} 
+              isMobile={isMobile}
+              onViewMap={handleViewMap}
+              distance={distanceOf({ college, courseImp })}
             />
           ))
         )}
@@ -121,12 +196,70 @@ interface CourseImpCardProps {
   imp: CourseImp;
   isMobile: boolean;
   onViewMap: (imp: CourseImp) => void;
+  distance?: number | null;
 }
 
-function CourseImpCard({ imp, isMobile, onViewMap }: CourseImpCardProps) {
+function CourseImpCard({ imp, isMobile, onViewMap, distance }: CourseImpCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const collegeName = imp.college?.name || 'Faculdade';
+
+  const feesLabel =
+    imp.fees === 0
+      ? { text: 'Pública', isPublic: true }
+      : imp.fees
+        ? { text: `R$ ${imp.fees.toFixed(2).replace('.', ',')}/mês`, isPublic: false }
+        : null;
+
+  const hasLink =
+    imp.note && typeof imp.note.link === 'string' && imp.note.link.length > 0;
+
+  const noteEntries: {
+    id: string;
+    icon: string;
+    label: string;
+    content: React.ReactNode;
+  }[] = [];
+
+  if (imp.note) {
+    if ('mec' in imp.note) {
+      noteEntries.push({
+        id: 'mec',
+        icon: 'star',
+        label: 'Conceito MEC',
+        content: renderStars(imp.note.mec as number | null),
+      });
+    }
+    if ('enade' in imp.note) {
+      noteEntries.push({
+        id: 'enade',
+        icon: 'star',
+        label: 'Conceito ENADE',
+        content: renderStars(imp.note.enade as number | null),
+      });
+    }
+    if ('horario' in imp.note && imp.note.horario) {
+      noteEntries.push({
+        id: 'horario',
+        icon: 'time-outline',
+        label: 'Período',
+        content: (
+          <Text style={styles.detailValue}>{PERIOD_LABELS[imp.note.horario as string] || (imp.note.horario as string)}</Text>
+        ),
+      });
+    }
+    if ('duracao_semestres' in imp.note && imp.note.duracao_semestres) {
+      const sem = imp.note.duracao_semestres as number;
+      noteEntries.push({
+        id: 'duracao',
+        icon: 'calendar-outline',
+        label: 'Duração',
+        content: (
+          <Text style={styles.detailValue}>{sem} semestres ({Math.round(sem / 2)} anos)</Text>
+        ),
+      });
+    }
+  }
 
   return (
     <TouchableOpacity
@@ -137,9 +270,16 @@ function CourseImpCard({ imp, isMobile, onViewMap }: CourseImpCardProps) {
       <View style={styles.impHeader}>
         <View style={styles.impInfo}>
           <Text style={styles.impCollege}>{collegeName}</Text>
-          <Text style={styles.impFees}>
-            {imp.fees ? `R$ ${imp.fees.toFixed(2).replace('.', ',')}` : 'Preço não disponível'}
-          </Text>
+          {feesLabel && (
+            <Text style={feesLabel.isPublic ? styles.impFeesPublic : styles.impFees}>
+              {feesLabel.text}
+            </Text>
+          )}
+          {distance != null && (
+            <Text style={styles.impDistance}>
+              {formatDistanceCompact(distance)} de distância
+            </Text>
+          )}
         </View>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
@@ -152,28 +292,45 @@ function CourseImpCard({ imp, isMobile, onViewMap }: CourseImpCardProps) {
         <View style={styles.impDetails}>
           <Text style={styles.impDetailsText}>{imp.details || ''}</Text>
 
-          {imp.locale && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Localização:</Text>
-              <Text style={styles.detailValue}>
-                Lat {imp.locale.lat?.toFixed(4) || '0'} | Lon {imp.locale.lon?.toFixed(4) || '0'}
-              </Text>
+          {noteEntries.length > 0 && (
+            <View style={styles.notesList}>
+              {noteEntries.map((entry) => (
+                <View key={entry.id} style={styles.detailRow}>
+                  <Ionicons
+                    name={entry.icon as any}
+                    size={14}
+                    color={entry.id === 'mec' || entry.id === 'enade' ? '#FFC107' : '#010080'}
+                  />
+                  <Text style={styles.detailLabel}>{entry.label}:</Text>
+                  {entry.content}
+                </View>
+              ))}
             </View>
           )}
 
-          {isMobile && imp.locale && (
-            <TouchableOpacity style={styles.mapButton} onPress={() => onViewMap(imp)}>
-              <Ionicons name="map" size={18} color="#fff" />
-              <Text style={styles.mapButtonText}>Ver no Mapa</Text>
-            </TouchableOpacity>
-          )}
+          {(hasLink || (isMobile && imp.locale)) && (
+            <View style={styles.actionsRow}>
+              {hasLink && (
+                <TouchableOpacity
+                  style={styles.outlineButton}
+                  onPress={() => Linking.openURL(imp.note.link as string)}
+                >
+                  <Ionicons name="open-outline" size={16} color="#010080" />
+                  <Text style={styles.outlineButtonText}>Ver no site</Text>
+                </TouchableOpacity>
+              )}
 
-          {imp.note && Object.entries(imp.note).map(([key, value]) => (
-            <View key={key} style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{key}:</Text>
-              <Text style={styles.detailValue}>{String(value)}</Text>
+              {isMobile && imp.locale && (
+                <TouchableOpacity
+                  style={[styles.outlineButton, hasLink && styles.actionsFlex]}
+                  onPress={() => onViewMap(imp)}
+                >
+                  <Ionicons name="map" size={16} color="#010080" />
+                  <Text style={styles.outlineButtonText}>Mapa</Text>
+                </TouchableOpacity>
+              )}
             </View>
-          ))}
+          )}
         </View>
       )}
     </TouchableOpacity>
@@ -223,6 +380,11 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 10,
   },
+  hintText: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 10,
+  },
   impCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -248,10 +410,21 @@ const styles = StyleSheet.create({
     color: '#010080',
     marginBottom: 2,
   },
+  impDistance: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 2,
+  },
   impFees: {
     fontSize: 15,
     fontWeight: '600',
     color: '#333',
+  },
+  impFeesPublic: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#2E7D32',
   },
   impDetails: {
     marginTop: 14,
@@ -265,34 +438,62 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 10,
   },
+  notesList: {
+    marginBottom: 10,
+  },
   detailRow: {
     flexDirection: 'row',
-    marginBottom: 4,
+    alignItems: 'center',
+    marginBottom: 6,
   },
   detailLabel: {
     fontSize: 13,
     fontWeight: 'bold',
     color: '#333',
-    marginRight: 6,
+    marginHorizontal: 6,
   },
   detailValue: {
     fontSize: 13,
-    color: '#555',
+    fontWeight: '600',
+    color: '#111',
     flex: 1,
   },
-  mapButton: {
+  starsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  starValue: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
+  },
+  starDash: {
+    fontSize: 13,
+    color: '#666',
+    flex: 1,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  outlineButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#010080',
+    borderWidth: 1,
+    borderColor: '#010080',
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    marginTop: 12,
     gap: 6,
   },
-  mapButtonText: {
-    color: '#fff',
+  actionsFlex: {
+    flex: 1,
+  },
+  outlineButtonText: {
+    color: '#010080',
     fontSize: 14,
     fontWeight: '600',
   },
