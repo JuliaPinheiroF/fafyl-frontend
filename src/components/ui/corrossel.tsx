@@ -125,6 +125,7 @@ export default function Corrossel() {
   const scrollX = useSharedValue(0);
   const autoScroll = useSharedValue(middleOffset);
   const isUserInteracting = useSharedValue(false);
+  const isListReady = useSharedValue(false);
   const pauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearPause = () => {
@@ -155,21 +156,21 @@ export default function Corrossel() {
   });
 
   useDerivedValue(() => {
-    if (!isUserInteracting.value) {
-      autoScroll.value += 0.2 * (screenWidth / 390);
+    if (!isListReady.value || isUserInteracting.value) return;
+    autoScroll.value += 0.2 * (screenWidth / 390);
 
+    scrollTo(flatListRef, autoScroll.value, 0, false);
+
+    if (items.length > 0 && autoScroll.value >= middleOffset + items.length * itemWidth) {
+      autoScroll.value = middleOffset;
       scrollTo(flatListRef, autoScroll.value, 0, false);
-
-      if (items.length > 0 && autoScroll.value >= middleOffset + items.length * itemWidth) {
-        autoScroll.value = middleOffset;
-        scrollTo(flatListRef, autoScroll.value, 0, false);
-      }
     }
   });
 
   useEffect(() => {
     if (DATA.length > 0) {
       setTimeout(() => {
+        if (!isListReady.value) return;
         scrollTo(flatListRef, middleOffset, 0, false);
       }, 100);
     }
@@ -184,6 +185,9 @@ export default function Corrossel() {
       <AnimatedFlatList
         ref={flatListRef}
         data={DATA}
+        onLayout={() => {
+          isListReady.value = true;
+        }}
         keyExtractor={(_, index) => index.toString()}
         renderItem={({ item, index }) => (
           <Card

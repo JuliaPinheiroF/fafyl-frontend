@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { formatCep, looksLikeCep } from '@/utils/cep';
 
 const GEOAPIFY_API_KEY = '0b5a3219a82049159d600f759dd39595';
 
@@ -6,6 +6,33 @@ const TILE_URL_TEMPLATE = `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/
 
 export function getTileUrl(style: string = 'osm-bright'): string {
   return TILE_URL_TEMPLATE.replace('osm-bright', style);
+}
+
+export async function geocodeAddress(text: string): Promise<{ lat: number; lon: number } | null> {
+  const query = looksLikeCep(text) ? formatCep(text) : text.trim();
+  const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(query)}&filter=countrycode:br&limit=1&apiKey=${GEOAPIFY_API_KEY}`;
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+  const data = await response.json();
+  const feature = data.features?.[0];
+  if (!feature?.geometry?.coordinates) return null;
+
+  const [lon, lat] = feature.geometry.coordinates;
+  return { lat, lon };
+}
+
+export async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+  const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&format=json&apiKey=${GEOAPIFY_API_KEY}`;
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+  const data = await response.json();
+  const result = data?.results?.[0];
+  const cep = result?.postcode;
+  return cep && String(cep).length > 0 ? String(cep) : null;
 }
 
 export interface RouteResult {

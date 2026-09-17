@@ -1,7 +1,8 @@
 import Background from '@/components/layout/background';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -11,8 +12,32 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginScreen() {
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      setError('Preencha e-mail e senha.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await signIn(email.trim().toLowerCase(), password);
+      router.replace('/home' as any);
+    } catch {
+      setError('E-mail ou senha inválidos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Background title="FAFYL">
       <KeyboardAvoidingView
@@ -31,24 +56,40 @@ export default function LoginScreen() {
                 style={styles.input}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
+                value={email}
+                onChangeText={setEmail}
+                editable={!loading}
               />
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Senha:</Text>
-              <TextInput style={styles.input} secureTextEntry />
+              <TextInput
+                style={styles.input}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                editable={!loading}
+              />
             </View>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <TouchableOpacity
               style={styles.linkButton}
-              onPress={() => router.replace('/home' as any)}>
+              onPress={() => router.replace('/')}>
               <Text style={styles.linkText}>
                 Não tem uma conta? <Text style={styles.linkBold}>Cadastre-se</Text>
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Entrar</Text>
+            <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+              {loading ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Text style={styles.buttonText}>Entrar</Text>
+              )}
             </TouchableOpacity>
 
           </ScrollView>
@@ -94,6 +135,12 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 20,
     fontSize: 16,
+  },
+  errorText: {
+    color: '#C00',
+    textAlign: 'center',
+    marginBottom: 10,
+    fontSize: 14,
   },
   linkButton: {
     alignItems: 'center',

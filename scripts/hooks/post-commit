@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# post-commit hook: envia o commit para o GitHub automaticamente.
+# Não bloqueia o commit em caso de falha — apenas loga e avisa.
+
+set -u
+
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+LOG_FILE="$HOOK_DIR/.post-commit-push.log"
+
+BRANCH="$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)"
+
+if [ -z "${BRANCH:-}" ]; then
+  echo "post-commit: não foi possível identificar a branch atual. Skip push." >&2
+  exit 0
+fi
+
+if git push -u origin "$BRANCH" >>"$LOG_FILE" 2>&1; then
+  echo "post-commit: push para origin/$BRANCH realizado."
+else
+  echo "post-commit: FALHA ao enviar para origin/$BRANCH (rede/credencial?)." >&2
+  echo "           Detalhes em $LOG_FILE" >&2
+fi
+
+exit 0

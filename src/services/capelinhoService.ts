@@ -1,19 +1,17 @@
-import { API_BASE, request } from './api';
+import { request } from './api';
 import { UserDTO } from '@/types';
 
 export async function updateCapelinho(capelinhoId: number): Promise<UserDTO> {
-  const response = await fetch(`${API_BASE}/auth/capelinho/${capelinhoId}`, {
+  return request<UserDTO>(`/auth/capelinho/${capelinhoId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    auth: true,
   });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.json();
 }
 
 export async function getUserCapelinho(): Promise<number | null> {
   try {
     const user: UserDTO = await request('/auth/me');
-    return user.capelinho;
+    return user.capelinho ?? null;
   } catch {
     return null;
   }

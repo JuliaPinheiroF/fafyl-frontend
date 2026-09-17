@@ -1,4 +1,4 @@
-import { API_BASE, request } from './api';
+import { request } from './api';
 
 export interface HistoryEntry {
   id: number;

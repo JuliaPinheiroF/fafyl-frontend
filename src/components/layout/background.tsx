@@ -1,7 +1,8 @@
 import { AlfaSlabOne_400Regular, useFonts } from '@expo-google-fonts/alfa-slab-one';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Platform, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 interface AppBackgroundProps {
@@ -81,7 +82,7 @@ export default function Background({
 
 const styles = StyleSheet.create({
   background: { flex: 1, backgroundColor: '#010080' },
-  container: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 0 },
+  container: { flex: 1 },
   header: {
     width: '100%',
     height: 80,

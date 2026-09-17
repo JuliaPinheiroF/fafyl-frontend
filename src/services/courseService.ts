@@ -1,5 +1,8 @@
-import { Course, CourseImp } from '@/types';
-import { request } from './api';
+import { Course, CourseImp, CourseFilters, PageResponse } from '@/types';
+import { request, buildQuery } from './api';
+import { cached } from './cache';
+
+const TTL = 5 * 60_000;
 
 const MOCK_COURSES: Course[] = [
   {
@@ -7,48 +10,56 @@ const MOCK_COURSES: Course[] = [
     name: 'Engenharia de Software',
     discWeights: { D: 0.6, I: 0.3, S: 0.4, C: 0.9 },
     description: 'Formação completa em desenvolvimento de software.',
+    category: 'EXATAS',
   },
   {
     id: 2,
     name: 'Ciência da Computação',
     discWeights: { D: 0.6, I: 0.3, S: 0.4, C: 0.9 },
     description: 'Base teórica e prática em computação.',
+    category: 'EXATAS',
   },
   {
     id: 3,
     name: 'Design Digital',
     discWeights: { D: 0.3, I: 0.9, S: 0.4, C: 1.0 },
     description: 'Design voltado para interfaces e experiência do usuário.',
+    category: 'CRIATIVAS',
   },
   {
     id: 4,
     name: 'Administração de Empresas',
     discWeights: { D: 1.0, I: 0.7, S: 0.5, C: 0.6 },
     description: 'Gestão empresarial moderna e estratégica.',
+    category: 'HUMANAS',
   },
   {
     id: 5,
     name: 'Inteligência Artificial',
     discWeights: { D: 0.5, I: 0.3, S: 0.4, C: 0.9 },
     description: 'Machine learning, deep learning e processamento de linguagem natural.',
+    category: 'EXATAS',
   },
   {
     id: 6,
     name: 'Sistemas de Informação',
     discWeights: { D: 0.5, I: 0.3, S: 0.4, C: 0.9 },
     description: 'Gestão de sistemas e tecnologia da informação.',
+    category: 'EXATAS',
   },
   {
     id: 7,
     name: 'Marketing Digital',
     discWeights: { D: 0.5, I: 1.0, S: 0.6, C: 0.4 },
     description: 'Estratégias de marketing para o ambiente digital.',
+    category: 'COMUNICACAO',
   },
   {
     id: 8,
     name: 'Engenharia Civil',
     discWeights: { D: 0.5, I: 1.0, S: 0.2, C: 0.8 },
     description: 'Projeto e construção de estruturas e edificações.',
+    category: 'EXATAS',
   },
 ];
 
@@ -186,11 +197,59 @@ const MOCK_COURSE_IMPS: CourseImp[] = [
 ];
 
 export async function getAllCourses(): Promise<Course[]> {
+  return cached('course-all', async () => {
+    try {
+      const response: any = await request('/model/course');
+      return response.content || response;
+    } catch {
+      return MOCK_COURSES;
+    }
+  }, TTL);
+}
+
+export async function getCourseById(id: number): Promise<Course | null> {
+  return cached(`course-${id}`, async () => {
+    try {
+      return await request(`/model/course/${id}`);
+    } catch {
+      const all = await getAllCourses();
+      return all.find((c) => c.id === id) ?? null;
+    }
+  }, TTL);
+}
+
+export async function getCoursesFiltered(filters: CourseFilters): Promise<PageResponse<Course>> {
   try {
-    const response: any = await request('/model/course');
-    return response.content || response;
+    const qs = buildQuery({
+      page: filters.page ?? 0,
+      size: filters.size ?? 20,
+      sortBy: filters.sortBy ?? 'name',
+      direction: filters.direction ?? 'asc',
+      category: filters.category,
+    });
+    const response: any = await request(`/model/course${qs}`);
+    return response;
   } catch {
-    return MOCK_COURSES;
+    let filtered = [...MOCK_COURSES];
+    if (filters.category) {
+      filtered = filtered.filter((c) => c.category === filters.category);
+    }
+    filtered.sort((a, b) => {
+      const dir = filters.direction === 'desc' ? -1 : 1;
+      const key = filters.sortBy === 'name' ? 'name' : 'id';
+      return dir * String(a[key]).localeCompare(String(b[key]));
+    });
+    const page = filters.page ?? 0;
+    const size = filters.size ?? 20;
+    const start = page * size;
+    const content = filtered.slice(start, start + size);
+    return {
+      content,
+      totalPages: Math.ceil(filtered.length / size),
+      totalElements: filtered.length,
+      size,
+      number: page,
+    };
   }
 }
 

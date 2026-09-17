@@ -1,5 +1,5 @@
 import { getRecommendations, getCollegesWithCourse } from '@/services/fafylService';
-import { Fafyl, College, CourseImp } from '@/types';
+import { Fafyl, College } from '@/types';
 import * as courseService from '@/services/courseService';
 import * as collegeService from '@/services/collegeService';
 
@@ -9,12 +9,10 @@ jest.mock('@/services/courseService', () => ({
 
 jest.mock('@/services/collegeService', () => ({
   getAllColleges: jest.fn(),
-  getCollegeCourses: jest.fn(),
 }));
 
 const mockGetAllCourses = courseService.getAllCourses as jest.MockedFunction<typeof courseService.getAllCourses>;
 const mockGetAllColleges = collegeService.getAllColleges as jest.MockedFunction<typeof collegeService.getAllColleges>;
-const mockGetCollegeCourses = collegeService.getCollegeCourses as jest.MockedFunction<typeof collegeService.getCollegeCourses>;
 
 describe('fafylService', () => {
   beforeEach(() => {
@@ -62,27 +60,29 @@ describe('fafylService', () => {
 
   describe('getCollegesWithCourse', () => {
     const mockColleges: College[] = [
-      { id: 1, name: 'USP', description: '', locale: { lat: 0, lon: 0 }, image: '', courses: [] },
-      { id: 2, name: 'PUC', description: '', locale: { lat: 0, lon: 0 }, image: '', courses: [] },
-      { id: 3, name: 'FAFYL', description: '', locale: { lat: 0, lon: 0 }, image: '', courses: [] },
+      {
+        id: 1, name: 'USP', description: '', locale: { lat: 0, lon: 0 }, image: '',
+        courses: [
+          { id: 1, name: 'Direito USP', course: { id: 1, name: 'Direito', discWeights: {}, description: '' }, college: { id: 1 } as College, note: {}, details: '', fees: 0, locale: { lat: 0, lon: 0 } },
+          { id: 2, name: 'Engenharia USP', course: { id: 2, name: 'Engenharia', discWeights: {}, description: '' }, college: { id: 1 } as College, note: {}, details: '', fees: 0, locale: { lat: 0, lon: 0 } },
+        ],
+      },
+      {
+        id: 2, name: 'PUC', description: '', locale: { lat: 0, lon: 0 }, image: '',
+        courses: [
+          { id: 3, name: 'Direito PUC', course: { id: 1, name: 'Direito', discWeights: {}, description: '' }, college: { id: 2 } as College, note: {}, details: '', fees: 0, locale: { lat: 0, lon: 0 } },
+        ],
+      },
+      {
+        id: 3, name: 'FAFYL', description: '', locale: { lat: 0, lon: 0 }, image: '',
+        courses: [
+          { id: 4, name: 'Administração FAFYL', course: { id: 4, name: 'Administração', discWeights: {}, description: '' }, college: { id: 3 } as College, note: {}, details: '', fees: 0, locale: { lat: 0, lon: 0 } },
+        ],
+      },
     ];
-
-    const mockImps: Record<number, CourseImp[]> = {
-      1: [
-        { id: 1, name: 'Direito USP', course: { id: 1, name: 'Direito', discWeights: {}, description: '' }, college: mockColleges[0], note: {}, details: '', fees: 0, locale: { lat: 0, lon: 0 } },
-        { id: 2, name: 'Engenharia USP', course: { id: 2, name: 'Engenharia', discWeights: {}, description: '' }, college: mockColleges[0], note: {}, details: '', fees: 0, locale: { lat: 0, lon: 0 } },
-      ],
-      2: [
-        { id: 3, name: 'Direito PUC', course: { id: 1, name: 'Direito', discWeights: {}, description: '' }, college: mockColleges[1], note: {}, details: '', fees: 0, locale: { lat: 0, lon: 0 } },
-      ],
-      3: [
-        { id: 4, name: 'Administração FAFYL', course: { id: 4, name: 'Administração', discWeights: {}, description: '' }, college: mockColleges[2], note: {}, details: '', fees: 0, locale: { lat: 0, lon: 0 } },
-      ],
-    };
 
     it('deve retornar apenas faculdades com o courseId', async () => {
       mockGetAllColleges.mockResolvedValueOnce(mockColleges);
-      mockGetCollegeCourses.mockImplementation(async (id: number) => mockImps[id] || []);
 
       const results = await getCollegesWithCourse(1);
 
@@ -93,7 +93,6 @@ describe('fafylService', () => {
 
     it('deve retornar lista vazia quando nenhuma faculdade tem o curso', async () => {
       mockGetAllColleges.mockResolvedValueOnce(mockColleges);
-      mockGetCollegeCourses.mockImplementation(async (id: number) => mockImps[id] || []);
 
       const results = await getCollegesWithCourse(99);
 
@@ -102,7 +101,6 @@ describe('fafylService', () => {
 
     it('deve retornar faculdade correta para curso específico', async () => {
       mockGetAllColleges.mockResolvedValueOnce(mockColleges);
-      mockGetCollegeCourses.mockImplementation(async (id: number) => mockImps[id] || []);
 
       const results = await getCollegesWithCourse(2);
 

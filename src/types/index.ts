@@ -15,6 +15,7 @@ export interface Course {
   name: string;
   discWeights: Record<string, number>;
   description: string;
+  category?: CourseCategory;
 }
 
 export interface College {
@@ -69,3 +70,43 @@ export interface AlternativeDTO {
   dimension: string;
   weight: number;
 }
+
+export interface UserDTO {
+  id: number;
+  name: string;
+  email: string;
+  locale: Coordinates;
+  capelinho?: number;
+}
+
+export interface CourseFilters {
+  category?: string;
+  minFees?: number;
+  maxFees?: number;
+  period?: string;
+  sortBy?: string;
+  direction?: 'asc' | 'desc';
+  page?: number;
+  size?: number;
+}
+
+export interface CollegeFilters {
+  lat?: number;
+  lon?: number;
+  maxDistance?: number;
+  sortBy?: string;
+  direction?: 'asc' | 'desc';
+  page?: number;
+  size?: number;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+}
+
+export type CourseCategory = 'EXATAS' | 'SAUDE' | 'HUMANAS' | 'CRIATIVAS' | 'COMUNICACAO';
+export type CoursePeriod = 'matutino' | 'vespertino' | 'noturno';

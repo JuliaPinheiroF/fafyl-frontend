@@ -1,4 +1,5 @@
 import Background from '@/components/layout/background';
+import SwipeablePage from '@/components/layout/SwipeablePage';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React from 'react';
@@ -10,27 +11,29 @@ export default function BuscaScreen() {
   return (
     <Background title="FAFYL" showUserIcon={true}
     onUserIconPress={() => router.push('/profile' as any)}>
-      <View style={styles.container}>
-        <Text style={styles.subtitle}>O que você procura?</Text>
+      <SwipeablePage>
+        <View style={styles.container}>
+          <Text style={styles.subtitle}>O que você procura?</Text>
 
-        <View style={styles.cardsRow}>
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => router.push('/busca/faculdades' as any)}
-          >
-            <Ionicons name="school" size={48} color="#FFD700" />
-            <Text style={styles.cardTitle}>Faculdades</Text>
-          </TouchableOpacity>
+          <View style={styles.cardsRow}>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => router.push('/busca/faculdades' as any)}
+            >
+              <Ionicons name="school" size={48} color="#FFD700" />
+              <Text style={styles.cardTitle}>Faculdades</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => router.push('/busca/cursos' as any)}
-          >
-            <Ionicons name="book" size={48} color="#FFD700" />
-            <Text style={styles.cardTitle}>Cursos</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => router.push('/busca/cursos' as any)}
+            >
+              <Ionicons name="book" size={48} color="#FFD700" />
+              <Text style={styles.cardTitle}>Cursos</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </SwipeablePage>
     </Background>
   );
 }

@@ -1,4 +1,5 @@
 import Background from '@/components/layout/background';
+import SwipeablePage from '@/components/layout/SwipeablePage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
@@ -13,34 +14,36 @@ export default function ComoFunciona() {
       showUserIcon={true}
       onUserIconPress={() => router.push('/profile')}
     >
-      <View style={styles.whiteContainer}>
-        {/* Header Interno com Seta e Título */}
-        <View style={styles.innerHeader}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={30} color="black" />
+      <SwipeablePage>
+        <View style={styles.whiteContainer}>
+          {/* Header Interno com Seta e Título */}
+          <View style={styles.innerHeader}>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={30} color="black" />
+            </TouchableOpacity>
+            <Text style={styles.titleText}>Como funciona o nosso quiz:</Text>
+          </View>
+
+          {/* Card Cinza com o Texto */}
+          <View style={styles.infoCard}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.descriptionText}>
+                Responda a uma sequência de perguntas, que exploram aspectos como interesses pessoais, afinidade com disciplinas escolares, habilidades cognitivas e comportamentais e expectativas em relação ao futuro profissional.
+                {"\n\n"}
+                Nosso Quiz orientador é uma experiência interativa para guiar estudantes no processo de decisão sobre qual curso superior seguir.
+              </Text>
+            </ScrollView>
+          </View>
+
+          {/* Botão Continuar */}
+          <TouchableOpacity 
+            style={styles.continueButton}
+            onPress={() => router.push('/quiz' as any)}
+          >
+            <Text style={styles.buttonText}>Continuar</Text>
           </TouchableOpacity>
-          <Text style={styles.titleText}>Como funciona o nosso quiz:</Text>
         </View>
-
-        {/* Card Cinza com o Texto */}
-        <View style={styles.infoCard}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.descriptionText}>
-              Responda a uma sequência de perguntas, que exploram aspectos como interesses pessoais, afinidade com disciplinas escolares, habilidades cognitivas e comportamentais e expectativas em relação ao futuro profissional.
-              {"\n\n"}
-              Nosso Quiz orientador é uma experiência interativa para guiar estudantes no processo de decisão sobre qual curso superior seguir.
-            </Text>
-          </ScrollView>
-        </View>
-
-        {/* Botão Continuar */}
-        <TouchableOpacity 
-          style={styles.continueButton}
-          onPress={() => router.push('/quiz' as any)}
-        >
-          <Text style={styles.buttonText}>Continuar</Text>
-        </TouchableOpacity>
-      </View>
+      </SwipeablePage>
     </Background>
   );
 }
