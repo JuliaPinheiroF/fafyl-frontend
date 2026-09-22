@@ -24,7 +24,12 @@
         "googleMaps": {
           "apiKey": ""
         }
-      }
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.fafyl"
     },
     "web": {
       "bundler": "metro",
@@ -45,6 +50,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b7b6a298-d32b-4971-b25d-6befe5f0e3fd"
+      }
+    },
+    "owner": "ryanbertaglia"
   }
 }
