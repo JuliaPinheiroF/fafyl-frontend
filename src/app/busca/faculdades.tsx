@@ -134,7 +134,7 @@ export default function FaculdadesScreen() {
           <View style={styles.filterBanner}>
             <Ionicons name="filter" size={16} color="#010080" />
             <Text style={styles.filterText}>Mostrando faculdades com o curso selecionado</Text>
-            <TouchableOpacity onPress={() => setSearch('')} style={styles.clearFilter}>
+            <TouchableOpacity onPress={() => router.replace('/busca/faculdades' as any)} style={styles.clearFilter}>
               <Text style={styles.clearFilterText}>Limpar</Text>
             </TouchableOpacity>
           </View>

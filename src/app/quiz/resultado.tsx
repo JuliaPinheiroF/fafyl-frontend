@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Fafyl } from '@/types';
 import { getRecommendations } from '@/services/fafylService';
+import { addHistory } from '@/services/historyService';
 
 const { width } = Dimensions.get('window');
 
@@ -35,6 +36,7 @@ export default function ResultadoScreen() {
       setResults(data);
       if (data.length > 0) {
         setMaxScore(data[0].score);
+        addHistory(data[0].course.id);
       }
       setLoading(false);
     });
