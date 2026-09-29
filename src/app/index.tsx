@@ -1,6 +1,6 @@
 import Background from '@/components/layout/background';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
@@ -17,13 +17,29 @@ import { geocodeAddress } from '@/services/geoapifyService';
 import { Coordinates } from '@/types';
 
 export default function RegisterScreen() {
-  const { signUp } = useAuth();
+  const { token, isLoading, signUp } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [cep, setCep] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isLoading && token) {
+      router.replace('/home' as any);
+    }
+  }, [isLoading, token]);
+
+  if (isLoading) {
+    return (
+      <Background title="FAFYL">
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#010080" />
+        </View>
+      </Background>
+    );
+  }
 
   const handleRegister = async () => {
     const cleanName = name.trim();
@@ -163,6 +179,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 40,
     paddingHorizontal: 30,
     paddingTop: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     flexGrow: 1,

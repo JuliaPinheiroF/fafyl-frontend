@@ -1,6 +1,6 @@
 import Background from '@/components/layout/background';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,11 +15,27 @@ import {
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+  const { token, isLoading, signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isLoading && token) {
+      router.replace('/home' as any);
+    }
+  }, [isLoading, token]);
+
+  if (isLoading) {
+    return (
+      <Background title="FAFYL">
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#010080" />
+        </View>
+      </Background>
+    );
+  }
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -107,6 +123,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     paddingHorizontal: 30,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     flexGrow: 1,
