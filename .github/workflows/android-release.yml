@@ -1,0 +1,64 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm install -g eas-cli@24.7.0
+
+      - name: Build APK
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build \
+            --platform android \
+            --profile release-apk \
+            --non-interactive \
+            --wait \
+            --json > build.json
+
+          ARTIFACT_URL=$(jq -r '.[0].artifacts.applicationArchiveUrl // .[0].artifacts.buildUrl' build.json)
+
+          test -n "$ARTIFACT_URL"
+          test "$ARTIFACT_URL" != "null"
+
+          curl -fL "$ARTIFACT_URL" -o fafyl.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fafyl-apk
+          path: fafyl.apk
+
+      - name: Publicar release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" fafyl.apk --clobber
+          else
+            gh release create "$TAG" fafyl.apk \
+              --title "Fafyl $TAG" \
+              --generate-notes
+          fi
