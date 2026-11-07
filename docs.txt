@@ -997,13 +997,136 @@ Frontend                    expo-location      Geoapify API
                }
             }
          },
-         "Fafyl":{
-            "type":"object",
-            "properties":{
-               "score":{"type":"number","format":"double"},
-               "course":{"$ref":"#/components/schemas/Course"}
-            }
-         }
-      }
-   }
+          "Fafyl":{
+             "type":"object",
+             "properties":{
+                "score":{"type":"number","format":"double"},
+                "course":{"$ref":"#/components/schemas/Course"}
+             }
+          }
+       }
+    }
 }
+---
+
+# Envio de builds para o Expo/EAS
+
+## Pré-requisitos
+
+- Estar autenticado na conta Expo dona do projeto:
+
+```bash
+npx eas login
+npx eas whoami
+```
+
+- O projeto já está vinculado pelo `extra.eas.projectId` do `app.json`.
+- Em CI, use um access token do Expo na variável `EXPO_TOKEN`.
+
+## Enviar um build para o EAS (build na nuvem)
+
+Build de desenvolvimento (dev client):
+
+```bash
+npx eas build --platform android --profile development
+```
+
+Build de preview em APK:
+
+```bash
+npx eas build --platform android --profile preview
+```
+
+Build de release em APK:
+
+```bash
+npx eas build --platform android --profile release-apk
+```
+
+Build de produção em AAB:
+
+```bash
+npx eas build --platform android --profile production
+```
+
+Para rodar no CI sem interação:
+
+```bash
+EXPO_TOKEN="$EXPO_TOKEN" npx eas build \
+  --platform android \
+  --profile release-apk \
+  --non-interactive
+```
+
+Para aguardar o fim e obter o JSON com a URL do artefato:
+
+```bash
+npx eas build \
+  --platform android \
+  --profile release-apk \
+  --non-interactive \
+  --wait \
+  --json > build.json
+```
+
+A URL do APK fica em `.[0].artifacts.applicationArchiveUrl` ou `.[0].artifacts.buildUrl`:
+
+```bash
+jq -r '.[0].artifacts.applicationArchiveUrl // .[0].artifacts.buildUrl' build.json
+```
+
+## Enviar um build local já gerado ao Expo
+
+O comando `eas upload` envia um APK/AAB já existente e gera um link compartilhável:
+
+```bash
+npx eas upload \
+  --platform android \
+  --build-path ./fafyl.apk
+```
+
+Para AAB:
+
+```bash
+npx eas upload \
+  --platform android \
+  --build-path ./fafyl.aab
+```
+
+O comando retorna uma URL para download e instalação.
+
+## Consultar builds enviados
+
+```bash
+npx eas build:list --platform android --limit 10
+npx eas build:view <BUILD_ID>
+```
+
+Dashboard:
+
+`https://expo.dev/accounts/ryanbertaglia/projects/fafyl/builds`
+
+## Release automática no GitHub
+
+O repositório possui o workflow `.github/workflows/android-release.yml`, disparado pelo push de uma tag `v*` (por exemplo `v1.0.0`). Ele:
+
+1. Autentica no EAS com o secret `EXPO_TOKEN`.
+2. Executa o build com o profile `release-apk`.
+3. Baixa o APK gerado.
+4. Anexa o APK à release correspondente no GitHub.
+
+Fluxo:
+
+```bash
+git tag -a v1.0.0 -m "Fafyl v1.0.0"
+git push origin v1.0.0
+```
+
+Acompanhar:
+
+```bash
+gh run watch
+gh release view v1.0.0
+```
+
+O APK não deve ser commitado no Git; ele é publicado como asset da release.

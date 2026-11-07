@@ -76,8 +76,13 @@ export default function RegisterScreen() {
 
       await signUp({ name: cleanName, email: cleanEmail, password, locale });
       router.replace('/home' as any);
-    } catch {
-      setError('Não foi possível cadastrar. Verifique se o e-mail já está em uso.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (message === 'HTTP 400' || message === 'HTTP 409') {
+        setError('Não foi possível cadastrar. Verifique os dados e se o e-mail já está em uso.');
+      } else {
+        setError('Não foi possível conectar ao servidor. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }

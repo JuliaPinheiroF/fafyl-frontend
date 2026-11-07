@@ -113,11 +113,12 @@ export default function FaculdadesScreen() {
           <TouchableOpacity
             style={styles.button}
             onPress={() => {
-              const params: any = { id: item.id.toString() };
-              if (courseId) {
-                params.highlightCourseId = courseId;
-              }
-              router.push({ pathname: `/busca/${item.id}/faculdade`, params } as any);
+              router.push({
+                pathname: '/busca/[id]/faculdade',
+                params: courseId
+                  ? { id: item.id.toString(), highlightCourseId: courseId }
+                  : { id: item.id.toString() },
+              } as any);
             }}
           >
             <Text style={styles.buttonText}>Lista de cursos</Text>

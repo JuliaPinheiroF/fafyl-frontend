@@ -1,25 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   Modal,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Circle } from 'react-native-svg';
 import useLocationAndRoute from '@/hooks/useLocationAndRoute';
 import {
   getTileUrl,
-  convertToLatLng,
   formatDistance,
   formatTime,
 } from '@/services/geoapifyService';
-
-const { width, height } = Dimensions.get('window');
 
 interface MapModalProps {
   visible: boolean;
@@ -46,6 +42,100 @@ function DisconnectedIcon() {
   );
 }
 
+function toScriptJson(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
+interface MapHtmlOptions {
+  destination: MapModalProps['destination'];
+  origin: { lat: number; lon: number } | null;
+  route: { latitude: number; longitude: number }[];
+}
+
+function buildMapHtml({ destination, origin, route }: MapHtmlOptions): string {
+  const tileUrl = toScriptJson(getTileUrl());
+  const destJson = toScriptJson({ lat: destination.lat, lng: destination.lon });
+  const destNameJson = toScriptJson(destination.name);
+  const originJson = origin ? toScriptJson({ lat: origin.lat, lng: origin.lon }) : 'null';
+  const routeJson = toScriptJson(
+    route.map((coordinate) => [coordinate.latitude, coordinate.longitude])
+  );
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body, #map { height: 100%; margin: 0; padding: 0; background: #e5e5e5; }
+    .leaflet-control-attribution { font-size: 9px; }
+    .origin-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #1E88E5; border: 3px solid #fff;
+      box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.35);
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    (function () {
+      var map = L.map('map', { zoomControl: true, attributionControl: true });
+      L.tileLayer(${tileUrl}, {
+        maxZoom: 19,
+        minZoom: 1,
+        attribution: '&copy; OpenStreetMap &copy; Geoapify'
+      }).addTo(map);
+
+      var dest = ${destJson};
+      var origin = ${originJson};
+      var route = ${routeJson};
+
+      var bounds = L.latLngBounds([[dest.lat, dest.lng]]);
+
+      L.marker([dest.lat, dest.lng], {
+        icon: L.divIcon({
+          className: '',
+          html: '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 24 24" fill="#FF0000"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>',
+          iconSize: [30, 40],
+          iconAnchor: [15, 40]
+        })
+      }).addTo(map).bindPopup(${destNameJson});
+
+      if (origin) {
+        L.marker([origin.lat, origin.lng], {
+          icon: L.divIcon({
+            className: '',
+            html: '<div class="origin-dot"></div>',
+            iconSize: [18, 18],
+            iconAnchor: [9, 9]
+          })
+        }).addTo(map).bindPopup('Você');
+        bounds.extend([origin.lat, origin.lng]);
+      }
+
+      if (route && route.length > 0) {
+        L.polyline(route, { color: '#010080', weight: 5, opacity: 0.9 }).addTo(map);
+        route.forEach(function (point) { bounds.extend(point); });
+      } else if (origin) {
+        L.polyline([[origin.lat, origin.lng], [dest.lat, dest.lng]], {
+          color: '#FF0000',
+          weight: 3,
+          dashArray: '10,5'
+        }).addTo(map);
+      }
+
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+      setTimeout(function () { map.invalidateSize(); }, 200);
+    })();
+  </script>
+</body>
+</html>`;
+}
+
 export default function MapModal({ visible, onClose, destination }: MapModalProps) {
   const {
     currentLocation,
@@ -62,33 +152,38 @@ export default function MapModal({ visible, onClose, destination }: MapModalProp
     }
   }, [visible, destination]);
 
-  const originCoords = currentLocation
-    ? { latitude: currentLocation.lat, longitude: currentLocation.lon }
-    : null;
+  const routeCoords = useMemo(
+    () =>
+      route
+        ? route.coordinates.map(([lon, lat]) => ({ latitude: lat, longitude: lon }))
+        : [],
+    [route]
+  );
 
-  const destCoords = {
-    latitude: destination.lat,
-    longitude: destination.lon,
-  };
+  const mapHtml = useMemo(
+    () =>
+      buildMapHtml({
+        destination,
+        origin: currentLocation,
+        route: routeCoords,
+      }),
+    [destination.lat, destination.lon, destination.name, currentLocation, routeCoords]
+  );
 
-  const routeCoords = route ? convertToLatLng(route.coordinates) : [];
-
-  // Calcular região inicial para centralizar o mapa
-  const initialRegion = originCoords
-    ? {
-        latitude: (originCoords.latitude + destCoords.latitude) / 2,
-        longitude: (originCoords.longitude + destCoords.longitude) / 2,
-        latitudeDelta:
-          Math.abs(originCoords.latitude - destCoords.latitude) * 1.5 + 0.02,
-        longitudeDelta:
-          Math.abs(originCoords.longitude - destCoords.longitude) * 1.5 + 0.02,
-      }
-    : {
-        latitude: destCoords.latitude,
-        longitude: destCoords.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      };
+  const routeStart = routeCoords[0];
+  const routeEnd = routeCoords[routeCoords.length - 1];
+  const mapKey = [
+    'map',
+    routeCoords.length,
+    routeStart?.latitude ?? 0,
+    routeStart?.longitude ?? 0,
+    routeEnd?.latitude ?? 0,
+    routeEnd?.longitude ?? 0,
+    currentLocation?.lat ?? 0,
+    currentLocation?.lon ?? 0,
+    destination.lat,
+    destination.lon,
+  ].join('-');
 
   const renderContent = () => {
     if (error) {
@@ -108,49 +203,24 @@ export default function MapModal({ visible, onClose, destination }: MapModalProp
 
     return (
       <>
-        <MapView
-          key={`map-${route?.coordinates?.length || 0}`}
-          style={styles.map}
-          initialRegion={initialRegion}
-          showsUserLocation={true}
-          showsMyLocationButton={false}
-          showsCompass={false}
-        >
-          <UrlTile
-            urlTemplate={getTileUrl()}
-            maximumZ={19}
-            minimumZ={1}
-          />
-
-          {currentLocation && originCoords && (
-            <Marker coordinate={originCoords} title="Você" anchor={{ x: 0.5, y: 0.5 }}>
-              <View style={styles.originMarker}>
-                <View style={styles.originMarkerInner} />
+        <View style={styles.mapContainer}>
+          <WebView
+            key={mapKey}
+            source={{ html: mapHtml }}
+            style={styles.map}
+            originWhitelist={['*']}
+            javaScriptEnabled
+            domStorageEnabled
+            scrollEnabled={false}
+            setBuiltInZoomControls={false}
+            startInLoadingState
+            renderLoading={() => (
+              <View style={styles.mapLoading}>
+                <ActivityIndicator size="large" color="#010080" />
               </View>
-            </Marker>
-          )}
-
-          <Marker coordinate={destCoords} title={destination.name} anchor={{ x: 0.5, y: 1 }}>
-            <View style={styles.destMarkerContainer}>
-              <Ionicons name="school" size={24} color="#FF0000" />
-            </View>
-          </Marker>
-
-          {routeCoords.length > 0 ? (
-            <Polyline
-              coordinates={routeCoords}
-              strokeColor="#010080"
-              strokeWidth={5}
-            />
-          ) : currentLocation && originCoords ? (
-            <Polyline
-              coordinates={[originCoords, destCoords]}
-              strokeColor="#FF0000"
-              strokeWidth={3}
-              lineDashPattern={[10, 5]}
-            />
-          ) : null}
-        </MapView>
+            )}
+          />
+        </View>
 
         <View style={styles.infoContainer}>
           <View style={styles.infoRow}>
@@ -246,40 +316,22 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  map: {
+  mapContainer: {
     flex: 1,
   },
-  markerContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 4,
-    borderWidth: 2,
-    borderColor: '#FF0000',
+  map: {
+    flex: 1,
+    backgroundColor: '#e5e5e5',
   },
-  originMarker: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#2196F3',
-    borderWidth: 3,
-    borderColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-  },
-  originMarkerInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#fff',
-  },
-  destMarkerContainer: {
+  mapLoading: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#F5F5F5',
   },
   loadingContainer: {
     flex: 1,

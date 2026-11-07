@@ -47,8 +47,13 @@ export default function LoginScreen() {
     try {
       await signIn(email.trim().toLowerCase(), password);
       router.replace('/home' as any);
-    } catch {
-      setError('E-mail ou senha inválidos.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (message === 'HTTP 400' || message === 'HTTP 401') {
+        setError('E-mail ou senha inválidos.');
+      } else {
+        setError('Não foi possível conectar ao servidor. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }

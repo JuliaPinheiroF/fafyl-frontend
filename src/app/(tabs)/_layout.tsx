@@ -26,62 +26,26 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          tabBarIcon: ({ color }) => <Ionicons name="home" size={30} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="home" size={30} color={color as string} />,
         }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'home' }],
-            });
-          },
-        })}
       />
       <Tabs.Screen
         name="quiz-info"
         options={{
-          tabBarIcon: ({ color }) => <Ionicons name="bulb-outline" size={30} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="bulb-outline" size={30} color={color as string} />,
         }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'quiz-info' }],
-            });
-          },
-        })}
       />
       <Tabs.Screen
         name="busca"
         options={{
-          tabBarIcon: ({ color }) => <Ionicons name="search" size={30} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="search" size={30} color={color as string} />,
         }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'busca' }],
-            });
-          },
-        })}
       />
       <Tabs.Screen
         name="sobre"
         options={{
-          tabBarIcon: ({ color }) => <Ionicons name="people" size={30} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="people" size={30} color={color as string} />,
         }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'sobre' }],
-            });
-          },
-        })}
       />
     </Tabs>
   );
